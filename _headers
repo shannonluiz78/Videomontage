@@ -1,3 +1,17 @@
----
-Cross-Origin-Opener-Policy: same-origin
-Cross-Origin-Embedder-Policy: require-corp
+/*
+  Cross-Origin-Opener-Policy: same-origin
+*/
+
+/*
+  Cross-Origin-Embedder-Policy: require-corp
+*/
+
+/*
+  These headers enable SharedArrayBuffer for FFmpeg.wasm
+  Required for WebAssembly multi-threading support
+  Apply to all resources on the site
+*/
+
+/*
+  End of configuration
+*/
