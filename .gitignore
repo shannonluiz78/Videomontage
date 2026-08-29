@@ -1,0 +1,27 @@
+# Local development server
+python-server/
+*.pyc
+__pycache__/
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependencies (if any)
+node_modules/
+
+# Build outputs
+dist/
+build/
