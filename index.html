@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real Estate Video Maker - Free Property Tour Creator</title>
+    <meta name="description" content="Create professional property tour videos from photos - free, runs in browser, no uploads">
     <style>
         * {
             margin: 0;
@@ -26,7 +27,7 @@
 
         header {
             text-align: center;
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
         }
 
         header h1 {
@@ -86,8 +87,8 @@
 
         .image-preview {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 0.5rem;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 0.75rem;
             margin-top: 1rem;
         }
 
@@ -97,6 +98,12 @@
             border-radius: 8px;
             overflow: hidden;
             background: #f1f5f9;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .preview-item:hover {
+            transform: scale(1.02);
         }
 
         .preview-item img {
@@ -105,7 +112,7 @@
             object-fit: cover;
         }
 
-        .preview-item .remove-btn {
+        .remove-btn {
             position: absolute;
             top: 4px;
             right: 4px;
@@ -122,10 +129,27 @@
             justify-content: center;
             opacity: 0;
             transition: opacity 0.2s;
+            z-index: 10;
         }
 
         .preview-item:hover .remove-btn {
             opacity: 1;
+        }
+
+        .caption-badge {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 11px;
+            padding: 4px 6px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 500;
         }
 
         .settings-section {
@@ -141,6 +165,9 @@
             margin-bottom: 1.5rem;
             padding-bottom: 0.75rem;
             border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .option-group {
@@ -155,6 +182,7 @@
             display: block;
             font-weight: 500;
             margin-bottom: 0.5rem;
+            color: #334155;
         }
 
         .slider-container {
@@ -168,12 +196,14 @@
             height: 6px;
             border-radius: 3px;
             background: #e2e8f0;
+            accent-color: #2563eb;
         }
 
         .slider-container span {
-            min-width: 80px;
+            min-width: 90px;
             text-align: right;
             color: #64748b;
+            font-weight: 500;
         }
 
         select {
@@ -183,6 +213,13 @@
             border-radius: 8px;
             background: white;
             font-size: 0.95rem;
+            color: #1e293b;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #2563eb;
         }
 
         .checkbox-label {
@@ -192,11 +229,13 @@
             cursor: pointer;
             padding: 0.5rem 0;
             font-weight: 500;
+            color: #334155;
         }
 
         .checkbox-label input[type="checkbox"] {
             width: 20px;
             height: 20px;
+            accent-color: #2563eb;
         }
 
         .text-options, .audio-options {
@@ -210,12 +249,20 @@
             display: block;
         }
 
-        .text-options input, .audio-options input {
+        .text-options input[type="text"],
+        .audio-options input[type="file"] {
             width: 100%;
             padding: 0.75rem;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
+            font-size: 0.95rem;
             margin-top: 0.5rem;
+        }
+
+        .text-options input[type="text"]:focus,
+        .audio-options input[type="file"]:focus {
+            outline: none;
+            border-color: #2563eb;
         }
 
         .text-preview {
@@ -224,7 +271,7 @@
             color: #64748b;
         }
 
-        .text-preview span:last-child {
+        .text-preview span {
             color: #1e293b;
             font-weight: 500;
         }
@@ -245,18 +292,23 @@
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            min-width: 250px;
+            min-width: 280px;
             margin: 0 auto;
         }
 
         .btn-primary:hover:not(:disabled) {
             background: #1d4ed8;
             transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
         }
 
         .btn-primary:disabled {
             background: #94a3b8;
             cursor: not-allowed;
+        }
+
+        .btn-primary:disabled:hover {
+            transform: none;
         }
 
         .progress-container {
@@ -297,10 +349,17 @@
             text-align: center;
             border: 2px solid #10b981;
             display: none;
+            margin-bottom: 2rem;
         }
 
         .download-section.show {
             display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .download-section h2 {
@@ -325,10 +384,13 @@
             cursor: pointer;
             transition: all 0.3s ease;
             margin: 0.5rem;
+            display: inline-block;
+            text-decoration: none;
         }
 
         .btn-secondary:hover {
             background: #059669;
+            transform: translateY(-2px);
         }
 
         .btn-ghost {
@@ -373,15 +435,22 @@
             padding: 1rem;
             background: #f8fafc;
             border-radius: 12px;
+            transition: background 0.2s ease;
+        }
+
+        .feature:hover {
+            background: #eff6ff;
         }
 
         .feature-icon {
             font-size: 2rem;
+            flex-shrink: 0;
         }
 
         .feature h4 {
             font-size: 0.95rem;
             margin-bottom: 0.25rem;
+            color: #334155;
         }
 
         .feature p {
@@ -413,6 +482,10 @@
                 padding: 2rem 1rem;
             }
 
+            .dropzone .icon {
+                font-size: 2.5rem;
+            }
+
             .image-preview {
                 grid-template-columns: repeat(3, 1fr);
             }
@@ -420,6 +493,12 @@
             .btn-primary, .btn-secondary, .btn-ghost {
                 width: 100%;
                 margin: 0.5rem 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .image-preview {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
@@ -443,12 +522,50 @@
             opacity: 1;
         }
 
-        .toast.success {
+        .toast.toast-success {
             background: #10b981;
         }
 
-        .toast.error {
+        .toast.toast-error {
             background: #ef4444;
+        }
+
+        .toast.toast-info {
+            background: #3b82f6;
+        }
+
+        .ffmpeg-status {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.5rem 1.25rem;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .status-idle {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .status-loading {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .status-success {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #dc2626;
         }
     </style>
 </head>
@@ -456,15 +573,19 @@
     <div class="container">
         <header>
             <h1>🏠 Real Estate Video Maker</h1>
-            <p class="subtitle">Create professional property tour videos from photos — free, runs in your browser, nothing uploaded</p>
+            <p class="subtitle">Create professional property tour videos from your photos — free, runs in your browser, nothing uploaded</p>
         </header>
+
+        <div class="ffmpeg-status" id="ffmpegStatus">
+            <span class="status-badge status-idle" id="statusBadge">Loading FFmpeg...</span>
+        </div>
 
         <div class="upload-section">
             <div class="dropzone" id="dropzone">
                 <div class="icon">📸</div>
                 <h3>Upload Your Property Photos</h3>
                 <p>Drag & drop images here, or click to browse</p>
-                <p>Supports: JPG, PNG, WEBP</p>
+                <p>Supports: JPG, PNG, WEBP (max 50 images)</p>
                 <input type="file" id="fileInput" multiple accept="image/*" hidden>
             </div>
             <div class="image-count">
@@ -475,18 +596,21 @@
         <div class="image-preview" id="imagePreview"></div>
 
         <div class="settings-section">
-            <h2>Video Settings</h2>
+            <h2>🎬 Video Settings</h2>
             
             <div class="option-group">
                 <label>Duration per image</label>
                 <div class="slider-container">
-                    <input type="range" id="duration" min="2" max="10" step="0.5" value="5">
-                    <span id="durationValue">5 seconds</span>
+                    <input type="range" id="duration" min="1" max="10" step="0.5" value="2.5">
+                    <span id="durationValue">2.5 seconds</span>
                 </div>
+                <p style="font-size: 0.85rem; color: #64748b; margin-top: 0.25rem;">
+                    Total video ≈ (images × duration) seconds
+                </p>
             </div>
 
             <div class="option-group">
-                <label>Transition duration</label>
+                <label>Transition between images</label>
                 <div class="slider-container">
                     <input type="range" id="transition" min="0.2" max="2" step="0.1" value="0.5">
                     <span id="transitionValue">0.5 seconds</span>
@@ -496,39 +620,39 @@
             <div class="option-group">
                 <label>Output resolution</label>
                 <select id="resolution">
-                    <option value="1280x720">1280x720 (720p HD)</option>
-                    <option value="1920x1080" selected>1920x1080 (1080p Full HD)</option>
-                    <option value="2560x1440">2560x1440 (1440p QHD)</option>
-                    <option value="3840x2160">3840x2160 (4K UHD)</option>
+                    <option value="1280x720">1280×720 (720p HD) — Fast</option>
+                    <option value="1920x1080" selected>1920×1080 (1080p Full HD) — Best quality</option>
+                    <option value="2560x1440">2560×1440 (1440p QHD) — Slower</option>
+                    <option value="3840x2160">3840×2160 (4K UHD) — Slowest</option>
                 </select>
             </div>
         </div>
 
         <div class="settings-section">
-            <h2>Optional Enhancements</h2>
+            <h2>✏️ Captions & Audio</h2>
             
             <div class="option-group">
                 <label class="checkbox-label">
-                    <input type="checkbox" id="enableText">
-                    <span>Add text overlay to all images</span>
+                    <input type="checkbox" id="enableText" checked>
+                    <span>Add captions to all images</span>
                 </label>
-                <div class="text-options" id="textOptions">
-                    <input type="text" id="overlayText" placeholder="e.g., 123 Main Street - $500,000" maxlength="100">
+                <div class="text-options show" id="textOptions">
+                    <input type="text" id="overlayText" value="722 Yishun St 71 - ONLY $485,000" placeholder="e.g., Property address + price" maxlength="150">
                     <div class="text-preview">
-                        <span>Preview:</span>
-                        <span id="textPreview">Your text will appear here</span>
+                        <span>💡 Tip:</span> Click on any image preview below to set a <strong>different caption</strong> for that specific photo.
+                        <br><span style="color: #64748b; font-size: 0.85rem;">Same caption will appear on all images unless customized per image.</span>
                     </div>
                 </div>
             </div>
 
             <div class="option-group">
                 <label class="checkbox-label">
-                    <input type="checkbox" id="enableAudio">
+                    <input type="checkbox" id="enableAudio" checked>
                     <span>Add background music</span>
                 </label>
-                <div class="audio-options" id="audioOptions">
+                <div class="audio-options show" id="audioOptions">
                     <input type="file" id="audioInput" accept="audio/*">
-                    <p style="color: #64748b; font-size: 0.85rem; margin-top: 0.5rem;">MP3, WAV, OGG supported</p>
+                    <p style="color: #64748b; font-size: 0.85rem; margin-top: 0.5rem;">MP3, WAV, OGG supported (optional)</p>
                 </div>
             </div>
         </div>
@@ -555,7 +679,7 @@
                 <span id="fileSize"></span> · 
                 <span id="fileDuration"></span>
             </p>
-            <button id="downloadBtn" class="btn-secondary">⬇️ Download Video</button>
+            <a id="downloadLink" href="#" download="property_tour.mp4" class="btn-secondary" style="display: none;">⬇️ Download Video</a>
             <button id="resetBtn" class="btn-ghost">🔄 Create Another Video</button>
         </div>
 
@@ -573,35 +697,35 @@
                     <span class="feature-icon">🔄</span>
                     <div>
                         <h4>Crossfade Transitions</h4>
-                        <p>Professional transitions between clips</p>
+                        <p>Professional fade transitions</p>
                     </div>
                 </div>
                 <div class="feature">
                     <span class="feature-icon">📝</span>
                     <div>
-                        <h4>Text Overlays</h4>
-                        <p>Add property details and pricing</p>
+                        <h4>Per-Image Captions</h4>
+                        <p>Click images to set custom text</p>
                     </div>
                 </div>
                 <div class="feature">
                     <span class="feature-icon">🎵</span>
                     <div>
                         <h4>Background Audio</h4>
-                        <p>Add music or narration tracks</p>
+                        <p>Add music or narration</p>
                     </div>
                 </div>
                 <div class="feature">
                     <span class="feature-icon">📱</span>
                     <div>
                         <h4>Multiple Resolutions</h4>
-                        <p>From 720p to 4K support</p>
+                        <p>720p to 4K support</p>
                     </div>
                 </div>
                 <div class="feature">
                     <span class="feature-icon">🔒</span>
                     <div>
                         <h4>100% Private</h4>
-                        <p>All processing happens in your browser</p>
+                        <p>All in your browser, no uploads</p>
                     </div>
                 </div>
             </div>
@@ -609,7 +733,7 @@
 
         <footer>
             <p>This tool uses FFmpeg.wasm for video processing. All files stay on your device — nothing is uploaded to any server.</p>
-            <p>Built with ❤️ for real estate professionals</p>
+            <p>Built with ❤️ for real estate professionals · Free forever</p>
         </footer>
     </div>
 
@@ -622,6 +746,8 @@
         let audioFile = null;
         let isProcessing = false;
         let ffmpegReady = false;
+        let ffmpegLoadError = null;
+        let captions = []; // Per-image captions
 
         // DOM Elements
         const dropzone = document.getElementById('dropzone');
@@ -648,21 +774,23 @@
         const downloadSection = document.getElementById('downloadSection');
         const fileSize = document.getElementById('fileSize');
         const fileDuration = document.getElementById('fileDuration');
+        const statusBadge = document.getElementById('statusBadge');
+        const downloadLink = document.getElementById('downloadLink');
         const toast = document.getElementById('toast');
 
-        // Initialize FFmpeg
+        // Initialize FFmpeg with error handling
         async function initFFmpeg() {
             try {
-                const { FFmpeg } = FFmpegLib;
-                const ffmpeg = new FFmpeg();
-                
-                window.ffmpeg = ffmpeg;
-                
-                showToast('Loading FFmpeg... this may take a minute on first load');
+                showStatus('Loading FFmpeg core (~30MB)...', 'loading');
                 progressContainer.style.display = 'block';
                 progressFill.style.width = '30%';
                 progressPercent.textContent = '30%';
-                progressLabel.textContent = 'Loading FFmpeg core...';
+                progressLabel.textContent = '📥 Downloading FFmpeg core...';
+                generateBtn.disabled = true;
+                
+                const { FFmpeg } = FFmpegLib;
+                const ffmpeg = new FFmpeg();
+                window.ffmpeg = ffmpeg;
                 
                 await ffmpeg.load({
                     coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js',
@@ -670,48 +798,83 @@
                 });
                 
                 ffmpegReady = true;
+                ffmpegLoadError = null;
+                showStatus('FFmpeg ready ✓', 'success');
                 progressFill.style.width = '100%';
                 progressPercent.textContent = '100%';
-                progressLabel.textContent = 'FFmpeg loaded!';
+                progressLabel.textContent = '✅ FFmpeg loaded!';
                 
                 setTimeout(() => {
                     progressContainer.style.display = 'none';
-                }, 1000);
+                    showStatus('Ready to create videos', 'idle');
+                }, 1500);
                 
                 checkGenerateEnabled();
             } catch (error) {
                 console.error('FFmpeg load error:', error);
-                showToast('Failed to load video processor. Please refresh and try again.', 'error');
+                ffmpegReady = false;
+                ffmpegLoadError = error.message || 'Unknown error';
+                
+                showStatus('FFmpeg failed ❌', 'error');
+                progressLabel.textContent = `❌ FFmpeg load failed: ${ffmpegLoadError}`;
+                showToast(`Failed to load video processor: ${ffmpegLoadError}`, 'error');
                 progressContainer.style.display = 'none';
+                generateBtn.disabled = true;
+                
+                setTimeout(() => {
+                    showToast('💡 Tip: Try Chrome/Edge browser or refresh the page', 'info');
+                }, 2000);
             }
         }
 
-        // Toast notification
+        // Status badge
+        function showStatus(message, type) {
+            if (!statusBadge) return;
+            statusBadge.textContent = message;
+            statusBadge.className = `status-badge status-${type}`;
+        }
+
+        // Toast
+        let toastTimeout;
         function showToast(message, type = 'info') {
+            if (toastTimeout) clearTimeout(toastTimeout);
             toast.textContent = message;
-            toast.className = `toast ${type} show`;
-            setTimeout(() => {
+            toast.className = `toast toast-${type} show`;
+            toastTimeout = setTimeout(() => {
                 toast.classList.remove('show');
-            }, 3000);
+            }, 4000);
         }
 
         // File handling
         function handleFiles(files) {
             const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
-            if (imageFiles.length === 0) return;
+            if (imageFiles.length === 0) {
+                showToast('No image files found. Please upload JPG, PNG, or WEBP.', 'error');
+                return;
+            }
+            
+            // Add empty captions for new images
+            const newCaptions = imageFiles.map(() => '');
+            captions = [...captions, ...newCaptions];
             
             uploadedImages = [...uploadedImages, ...imageFiles];
             updatePreview();
             checkGenerateEnabled();
+            
             showToast(`Added ${imageFiles.length} image(s). Total: ${uploadedImages.length}`, 'success');
         }
 
         function removeImage(index) {
             uploadedImages.splice(index, 1);
+            captions.splice(index, 1);
             updatePreview();
             checkGenerateEnabled();
+            
             if (uploadedImages.length === 0) {
                 countEl.textContent = '0';
+                imagePreview.style.display = 'none';
+                enableText.checked = false;
+                textOptions.classList.remove('show');
             }
         }
 
@@ -738,24 +901,57 @@
                 removeBtn.className = 'remove-btn';
                 removeBtn.innerHTML = '×';
                 removeBtn.title = 'Remove';
-                removeBtn.onclick = () => removeImage(index);
+                removeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    removeImage(index);
+                };
+                
+                // Caption badge
+                const captionBadge = document.createElement('div');
+                captionBadge.className = 'caption-badge';
+                captionBadge.textContent = captions[index] || 'Add caption...';
+                captionBadge.title = 'Click to edit caption';
+                
+                // Click to edit caption
+                item.onclick = (e) => {
+                    if (e.target === removeBtn) return;
+                    editCaption(index);
+                };
+                item.style.cursor = 'pointer';
                 
                 const indexBadge = document.createElement('div');
-                indexBadge.style.cssText = 'position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.6);color:white;font-size:10px;padding:2px 6px;border-radius:4px;';
+                indexBadge.style.cssText = 'position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:white;font-size:10px;padding:2px 6px;border-radius:4px;';
                 indexBadge.textContent = index + 1;
                 
                 item.appendChild(img);
                 item.appendChild(removeBtn);
+                item.appendChild(captionBadge);
                 item.appendChild(indexBadge);
                 imagePreview.appendChild(item);
             });
         }
 
-        function checkGenerateEnabled() {
-            generateBtn.disabled = !(uploadedImages.length >= 1 && ffmpegReady);
+        function editCaption(index) {
+            const current = captions[index] || '';
+            const newCaption = prompt(`Caption for image ${index + 1}:`, current);
+            if (newCaption !== null) {
+                captions[index] = newCaption.trim();
+                updatePreview();
+            }
         }
 
-        // Slider updates
+        function checkGenerateEnabled() {
+            const canGenerate = uploadedImages.length >= 1 && ffmpegReady;
+            generateBtn.disabled = !canGenerate;
+            
+            if (!canGenerate && uploadedImages.length >= 1) {
+                generateBtn.title = ffmpegReady ? '' : `FFmpeg not loaded (${ffmpegLoadError || 'error'})`;
+            } else {
+                generateBtn.title = '';
+            }
+        }
+
+        // Slider events
         durationSlider.addEventListener('input', () => {
             durationValue.textContent = `${durationSlider.value} seconds`;
         });
@@ -767,67 +963,43 @@
         // Checkbox toggles
         enableText.addEventListener('change', () => {
             textOptions.classList.toggle('show', enableText.checked);
-            updateTextPreview();
         });
 
         enableAudio.addEventListener('change', () => {
             audioOptions.classList.toggle('show', enableAudio.checked);
         });
 
-        overlayText.addEventListener('input', updateTextPreview);
-
-        function updateTextPreview() {
-            if (enableText.checked && overlayText.value) {
-                textPreview.textContent = overlayText.value;
-            } else {
-                textPreview.textContent = 'Your text will appear here';
-            }
-        }
-
         // Audio file
         audioInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 audioFile = e.target.files[0];
-                showToast(`Audio loaded: ${audioFile.name}`, 'success');
+                showToast(`Audio loaded: ${audioFile.name} (${(audioFile.size / 1024 / 1024).toFixed(2)} MB)`, 'success');
             }
         });
 
-        // Dropzone events
+        // Dropzone
         dropzone.addEventListener('click', () => fileInput.click());
-        
-        dropzone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropzone.classList.add('dragover');
-        });
-        
-        dropzone.addEventListener('dragleave', () => {
-            dropzone.classList.remove('dragover');
-        });
-        
-        dropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropzone.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
-        });
+        dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+        dropzone.addEventListener('drop', (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+        fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); fileInput.value = ''; });
 
-        fileInput.addEventListener('change', (e) => {
-            handleFiles(e.target.files);
-            fileInput.value = '';
-        });
-
-        // Main video generation
+        // Generate video
         async function generateVideo() {
-            if (isProcessing || uploadedImages.length === 0 || !ffmpegReady) return;
+            if (isProcessing || uploadedImages.length === 0 || !ffmpegReady) {
+                showToast('Cannot generate: ' + (uploadedImages.length === 0 ? 'No images' : 'FFmpeg not ready'), 'error');
+                return;
+            }
             
             isProcessing = true;
             generateBtn.disabled = true;
             generateBtn.textContent = '⏳ Processing...';
             downloadSection.classList.remove('show');
+            downloadLink.style.display = 'none';
             
-            const ffmpeg = window.ffmpeg;
+            const ff = window.ffmpeg;
             
             try {
-                // Parse settings
                 const [width, height] = resolutionSelect.value.split('x').map(Number);
                 const duration = parseFloat(durationSlider.value);
                 const transitionDuration = parseFloat(transitionSlider.value);
@@ -835,152 +1007,119 @@
                 const totalFrames = Math.ceil(duration * fps);
                 const totalDuration = uploadedImages.length * duration;
                 
-                // Reset FFmpeg state
-                await ffmpeg.terminate();
-                await ffmpeg.load({
+                await ff.terminate();
+                await ff.load({
                     coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js',
                     wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.wasm'
                 });
                 
                 progressFill.style.width = '5%';
                 progressPercent.textContent = '5%';
-                progressLabel.textContent = 'Preparing...';
+                progressLabel.textContent = '📁 Preparing...';
                 
-                // Write images to virtual FS
+                // Write images
                 for (let i = 0; i < uploadedImages.length; i++) {
-                    progressFill.style.width = `${(5 + (i * 20 / uploadedImages.length))}%`;
-                    progressPercent.textContent = `${Math.round(5 + (i * 20 / uploadedImages.length))}%`;
-                    progressLabel.textContent = `Loading image ${i + 1}/${uploadedImages.length}...`;
+                    const p = 5 + (i * 15 / uploadedImages.length);
+                    progressFill.style.width = `${p}%`;
+                    progressPercent.textContent = `${Math.round(p)}%`;
+                    progressLabel.textContent = `📷 Image ${i + 1}/${uploadedImages.length}...`;
                     
-                    const imageData = await uploadedImages[i].arrayBuffer();
-                    const data = new Uint8Array(imageData);
-                    const filename = `input_${i.toString().padStart(3, '0')}.jpg`;
-                    await ffmpeg.writeFile(filename, data);
+                    const data = new Uint8Array(await uploadedImages[i].arrayBuffer());
+                    await ff.writeFile(`input_${i.toString().padStart(3,'0')}.jpg`, data);
                 }
                 
-                // Write audio if provided
+                // Write audio
                 if (enableAudio.checked && audioFile) {
-                    progressFill.style.width = '85%';
-                    progressPercent.textContent = '85%';
-                    progressLabel.textContent = 'Loading audio...';
-                    
-                    const audioData = await audioFile.arrayBuffer();
-                    const audioDataArr = new Uint8Array(audioData);
-                    await ffmpeg.writeFile('audio.mp3', audioDataArr);
-                    await ffmpeg.exec('mv audio.mp3 /audio.mp3');
+                    progressFill.style.width = '80%';
+                    progressPercent.textContent = '80%';
+                    progressLabel.textContent = '🎵 Loading audio...';
+                    await ff.writeFile('audio.mp3', new Uint8Array(await audioFile.arrayBuffer()));
                 }
                 
-                // Generate clips with Ken Burns effect
+                // Generate clips
                 for (let i = 0; i < uploadedImages.length; i++) {
-                    progressFill.style.width = `${(90 + (i * 8 / uploadedImages.length))}%`;
-                    progressPercent.textContent = `${Math.round(90 + (i * 8 / uploadedImages.length))}%`;
-                    progressLabel.textContent = `Creating clip ${i + 1}/${uploadedImages.length}...`;
+                    const p = 85 + (i * 10 / uploadedImages.length);
+                    progressFill.style.width = `${p}%`;
+                    progressPercent.textContent = `${Math.round(p)}%`;
+                    progressLabel.textContent = `🎬 Clip ${i + 1}/${uploadedImages.length}...`;
                     
-                    const inputFile = `input_${i.toString().padStart(3, '0')}.jpg`;
-                    const clipFile = `clip_${i.toString().padStart(3, '0')}.mp4`;
+                    const inputFile = `input_${i.toString().padStart(3,'0')}.jpg`;
+                    const clipFile = `clip_${i.toString().padStart(3,'0')}.mp4`;
                     
-                    // Ken Burns zoom effect
-                    const zoomFilter = `zoompan=z='if(lte(zoom,1.4),zoom+0.002,1.4)':d=${totalFrames}:s=${width}x${height}:fps=${fps}`;
-                    const fadeFilter = `fade=t=in:st=0:d=0.5,fade=t=out:st=${duration - 0.5}:d=0.5`;
+                    // Get caption for this image (per-image or default)
+                    const caption = captions[i] || (enableText.checked ? overlayText.value : '');
+                    
+                    const zoomFilter = `zoompan=z='if(lte(zoom,1.35),zoom+0.0025,1.35)':d=${totalFrames}:s=${width}x${height}:fps=${fps}`;
+                    const fadeFilter = `fade=t=in:st=0:d=0.5,fade=t=out:st=${duration-0.5}:d=0.5`;
                     
                     let textFilter = '';
-                    if (enableText.checked && overlayText.value) {
-                        // Escape special characters for FFmpeg drawtext
-                        const escaped = overlayText.value
-                            .replace(/\\/g, '\\\\')
-                            .replace(/:/g, '\\:')
-                            .replace(/'/g, "\\'")
-                            .replace(/=/g, '\\=')
-                            .replace(/,/g, '\\,');
-                        textFilter = `,drawtext=text='${escaped}':fontcolor=white:fontsize=28:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=h-80`;
+                    if (caption) {
+                        const escaped = caption.replace(/\\/g,'\\\\').replace(/:/g,'\\:').replace(/'/g,"\\'").replace(/=/g,'\\=').replace(/,/g,'\\,').replace(/%/g,'\\%');
+                        textFilter = `,drawtext=text='${escaped}':fontcolor=white:fontsize=26:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=h-80`;
                     }
                     
                     const vf = `${zoomFilter},${fadeFilter}${textFilter}`;
                     const cmd = `-loop 1 -i ${inputFile} -vf "${vf}" -t ${duration} -c:v libx264 -pix_fmt yuv420p -r ${fps} -y ${clipFile}`;
-                    
-                    await ffmpeg.exec(cmd);
+                    await ff.exec(cmd);
                 }
                 
-                progressFill.style.width = '98%';
-                progressPercent.textContent = '98%';
-                progressLabel.textContent = 'Combining clips...';
+                // Combine with transitions
+                progressFill.style.width = '95%';
+                progressPercent.textContent = '95%';
+                progressLabel.textContent = '🔗 Combining...';
                 
-                // Create transitions and concatenate
                 if (uploadedImages.length > 1) {
-                    // Create concat file with transitions
-                    let concatContent = '';
-                    
+                    let concat = '';
                     for (let i = 0; i < uploadedImages.length - 1; i++) {
-                        const clip1 = `clip_${i.toString().padStart(3, '0')}.mp4`;
-                        const clip2 = `clip_${(i+1).toString().padStart(3, '0')}.mp4`;
-                        const transFile = `trans_${i.toString().padStart(3, '0')}.mp4`;
-                        
-                        const xfadeCmd = `-i ${clip1} -i ${clip2} -filter_complex "[0:v][1:v]xfade=transition=fade:duration=${transitionDuration}:offset=0[outv]" -map "[outv]" -c:v libx264 -pix_fmt yuv420p -y ${transFile}`;
-                        await ffmpeg.exec(xfadeCmd);
-                        
-                        if (i === 0) {
-                            concatContent += `file '${transFile}'\n`;
-                        } else {
-                            concatContent += `file '${transFile}'\n`;
-                        }
+                        const c1 = `clip_${i.toString().padStart(3,'0')}.mp4`;
+                        const c2 = `clip_${(i+1).toString().padStart(3,'0')}.mp4`;
+                        const t = `trans_${i.toString().padStart(3,'0')}.mp4`;
+                        await ff.exec(`-i ${c1} -i ${c2} -filter_complex "[0:v][1:v]xfade=transition=fade:duration=${transitionDuration}:offset=0[outv]" -map "[outv]" -c:v libx264 -pix_fmt yuv420p -y ${t}`);
+                        concat += (i === 0 ? `file '${t}'\n` : `file '${t}'\n`);
                     }
-                    
-                    // Add last clip without transition at the end
-                    const lastClip = `clip_${(uploadedImages.length - 1).toString().padStart(3, '0')}.mp4`;
-                    concatContent += `file '${lastClip}'\n`;
-                    
-                    await ffmpeg.writeFile('concat.txt', concatContent);
-                    
-                    const concatCmd = `-f concat -safe 0 -i concat.txt -c copy -y output.mp4`;
-                    await ffmpeg.exec(concatCmd);
+                    const last = `clip_${(uploadedImages.length-1).toString().padStart(3,'0')}.mp4`;
+                    concat += `file '${last}'\n`;
+                    await ff.writeFile('concat.txt', concat);
+                    await ff.exec('-f concat -safe 0 -i concat.txt -c copy -y output.mp4');
                 } else {
-                    // Single clip
-                    const clipFile = `clip_000.mp4`;
-                    await ffmpeg.exec(`-i ${clipFile} -c copy -y output.mp4`);
+                    await ff.exec(`-i clip_000.mp4 -c copy -y output.mp4`);
                 }
                 
-                progressFill.style.width = '99%';
-                progressPercent.textContent = '99%';
-                progressLabel.textContent = 'Adding audio...';
-                
-                // Add audio if provided
+                // Add audio
                 if (enableAudio.checked && audioFile) {
-                    await ffmpeg.exec('-i output.mp4 -i /audio.mp3 -c:v copy -c:a aac -shortest -y output_audio.mp4');
-                    await ffmpeg.exec('mv output_audio.mp4 output.mp4');
+                    progressFill.style.width = '98%';
+                    progressPercent.textContent = '98%';
+                    progressLabel.textContent = '🎵 Adding audio...';
+                    await ff.exec('-i output.mp4 -i audio.mp3 -c:v copy -c:a aac -shortest -y output_audio.mp4');
+                    await ff.exec('mv output_audio.mp4 output.mp4');
                 }
                 
+                // Finalize
                 progressFill.style.width = '100%';
                 progressPercent.textContent = '100%';
-                progressLabel.textContent = 'Finalizing...';
+                progressLabel.textContent = '✅ Done!';
                 
-                // Read output
-                const outputData = await ffmpeg.readFile('output.mp4');
+                const outputData = await ff.readFile('output.mp4');
                 const blob = new Blob([outputData], { type: 'video/mp4' });
                 const url = URL.createObjectURL(blob);
                 
-                // Update download section
-                fileSize.textContent = `File size: ${(blob.size / (1024 * 1024)).toFixed(2)} MB`;
-                fileDuration.textContent = `Duration: ${totalDuration.toFixed(1)} seconds (${uploadedImages.length} clips × ${duration}s)`;
+                fileSize.textContent = `📦 Size: ${(blob.size / (1024*1024)).toFixed(2)} MB`;
+                fileDuration.textContent = `⏱️ Duration: ${totalDuration.toFixed(1)} seconds`;
                 
-                downloadSection.innerHTML = `
-                    <h2>✅ Video Ready!</h2>
-                    <p class="download-info">
-                        ${fileSize.textContent} · ${fileDuration.textContent}
-                    </p>
-                    <button class="btn-secondary" onclick="window.open('${url}', '_blank')">⬇️ Download Video</button>
-                    <button class="btn-ghost" onclick="resetAll()">🔄 Create Another Video</button>
-                `;
+                downloadLink.href = url;
+                downloadLink.style.display = 'inline-block';
                 downloadSection.classList.add('show');
                 
                 showToast('🎉 Video created successfully!', 'success');
-                
             } catch (error) {
                 console.error('Video generation error:', error);
-                showToast(`❌ Error: ${error.message || 'Unknown error'}`, 'error');
+                showToast(`❌ Error: ${error.message || error}`, 'error');
             } finally {
                 isProcessing = false;
-                generateBtn.disabled = !(uploadedImages.length >= 1 && ffmpegReady);
-                generateBtn.textContent = '🎬 Generate Video';
+                if (!downloadSection.classList.contains('show')) {
+                    generateBtn.disabled = !(uploadedImages.length >= 1 && ffmpegReady);
+                    generateBtn.textContent = '🎬 Generate Video';
+                }
             }
         }
 
@@ -989,30 +1128,34 @@
         // Reset
         function resetAll() {
             uploadedImages = [];
+            captions = [];
             audioFile = null;
             audioInput.value = '';
-            overlayText.value = '';
-            textPreview.textContent = 'Your text will appear here';
-            enableText.checked = false;
-            textOptions.classList.remove('show');
-            enableAudio.checked = false;
-            audioOptions.classList.remove('show');
+            overlayText.value = '722 Yishun St 71 - ONLY $485,000';
+            enableText.checked = true;
+            textOptions.classList.add('show');
+            enableAudio.checked = true;
+            audioOptions.classList.add('show');
             imagePreview.innerHTML = '';
             imagePreview.style.display = 'none';
             countEl.textContent = '0';
             downloadSection.classList.remove('show');
+            downloadLink.style.display = 'none';
             progressContainer.style.display = 'none';
             generateBtn.disabled = true;
+            generateBtn.textContent = '🎬 Generate Video';
             
-            durationSlider.value = '5';
-            durationValue.textContent = '5 seconds';
+            durationSlider.value = '2.5';
+            durationValue.textContent = '2.5 seconds';
             transitionSlider.value = '0.5';
             transitionValue.textContent = '0.5 seconds';
             resolutionSelect.value = '1920x1080';
+            
+            showStatus('Ready', 'idle');
         }
 
-        // Initialize on load
-        initFFmpeg();
+        // Init on load
+        window.addEventListener('load', initFFmpeg);
     </script>
 </body>
 </html>

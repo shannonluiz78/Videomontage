@@ -1,16 +1,19 @@
-/**
+/***
  * Real Estate Video Maker - Client-side video generation using FFmpeg.wasm
+ * Fixed version with better error handling and per-image captions
  * All processing happens in the browser - no server uploads
  */
 
 // Initialize FFmpeg
 const ffmpeg = new FFmpeg();
-let ffmpegLoaded = false;
+let ffmpegReady = false;
+let ffmpegLoadError = null;
 
 // State
 let uploadedImages = [];
 let audioFile = null;
 let isProcessing = false;
+let captions = []; // Per-image captions
 
 // DOM Elements
 const dropzone = document.getElementById('dropzone');
@@ -21,8 +24,7 @@ const durationSlider = document.getElementById('duration');
 const durationValue = document.getElementById('durationValue');
 const transitionSlider = document.getElementById('transition');
 const transitionValue = document.getElementById('transitionValue');
-const outputWidth = document.getElementById('outputWidth');
-const outputHeight = document.getElementById('outputHeight');
+const resolutionSelect = document.getElementById('resolution');
 const enableText = document.getElementById('enableText');
 const textOptions = document.getElementById('textOptions');
 const overlayText = document.getElementById('overlayText');
@@ -36,41 +38,240 @@ const progressFill = document.getElementById('progressFill');
 const progressLabel = document.getElementById('progressLabel');
 const progressPercent = document.getElementById('progressPercent');
 const downloadSection = document.getElementById('downloadSection');
-const downloadBtn = document.getElementById('downloadBtn');
-const resetBtn = document.getElementById('resetBtn');
 const fileSize = document.getElementById('fileSize');
 const fileDuration = document.getElementById('fileDuration');
+const statusBadge = document.getElementById('ffmpegStatus');
+const retryBtn = document.getElementById('retryFfmpeg');
 
-// Initialize
-async function init() {
+// Initialize FFmpeg with better error handling
+async function initFFmpeg() {
     try {
-        progressLabel.textContent = 'Loading FFmpeg (this may take a moment)...';
+        showStatus('Loading FFmpeg core (~30MB)...', 'loading');
         progressContainer.style.display = 'block';
         progressFill.style.width = '30%';
         progressPercent.textContent = '30%';
+        progressLabel.textContent = '📥 Downloading FFmpeg core...';
+        generateBtn.disabled = true;
         
         await ffmpeg.load({
-            coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js',
-            wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.wasm'
+            coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js',
+            wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/ffmpeg-core.wasm'
         });
         
-        ffmpegLoaded = true;
+        ffmpegReady = true;
+        ffmpegLoadError = null;
+        showStatus('FFmpeg ready ✓', 'success');
         progressFill.style.width = '100%';
         progressPercent.textContent = '100%';
-        progressLabel.textContent = 'FFmpeg loaded!';
+        progressLabel.textContent = '✅ FFmpeg loaded successfully!';
         
         setTimeout(() => {
             progressContainer.style.display = 'none';
-        }, 1000);
+        }, 1500);
+        
+        checkGenerateEnabled();
     } catch (error) {
-        console.error('Failed to load FFmpeg:', error);
-        progressLabel.textContent = '❌ Failed to load FFmpeg. Please refresh and try again.';
-        showToast('Failed to initialize video processor. Please try again.', 'error');
+        console.error('FFmpeg load error:', error);
+        ffmpegReady = false;
+        ffmpegLoadError = error.message || 'Unknown error loading FFmpeg';
+        
+        showStatus('FFmpeg failed to load ❌', 'error');
+        progressLabel.textContent = `❌ FFmpeg load failed: ${ffmpegLoadError}`;
+        showToast(`Failed to load video processor: ${ffmpegLoadError}`, 'error');
+        
         progressContainer.style.display = 'none';
+        generateBtn.disabled = true;
+        
+        // Show retry option
+        setTimeout(() => {
+            showToast('💡 Tip: Try a different browser (Chrome recommended) or refresh the page', 'info');
+        }, 2000);
     }
 }
 
-// Event Listeners
+// Status badge updates
+function showStatus(message, type) {
+    if (!statusBadge) return;
+    statusBadge.textContent = message;
+    statusBadge.className = `status-badge status-${type}`;
+}
+
+// Toast notification
+function showToast(message, type = 'info') {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+// File handling
+function handleFiles(files) {
+    const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length === 0) {
+        showToast('No image files found. Please upload JPG, PNG, or WEBP images.', 'error');
+        return;
+    }
+    
+    // Add new captions for new images
+    const newCaptions = imageFiles.map(() => '');
+    captions = [...captions, ...newCaptions];
+    
+    uploadedImages = [...uploadedImages, ...imageFiles];
+    updatePreview();
+    checkGenerateEnabled();
+    
+    if (imageFiles.length === 1) {
+        showToast(`Added 1 image. Total: ${uploadedImages.length}`, 'success');
+    } else {
+        showToast(`Added ${imageFiles.length} images. Total: ${uploadedImages.length}`, 'success');
+    }
+}
+
+function removeImage(index) {
+    uploadedImages.splice(index, 1);
+    captions.splice(index, 1);
+    updatePreview();
+    checkGenerateEnabled();
+    
+    if (uploadedImages.length === 0) {
+        imageCount.textContent = '0';
+        imagePreview.style.display = 'none';
+        enableText.checked = false;
+        textOptions.classList.remove('show');
+    }
+}
+
+function updatePreview() {
+    imagePreview.innerHTML = '';
+    imageCount.textContent = uploadedImages.length;
+    
+    if (uploadedImages.length === 0) {
+        imagePreview.style.display = 'none';
+        return;
+    }
+    
+    imagePreview.style.display = 'grid';
+    
+    uploadedImages.forEach((file, index) => {
+        const item = document.createElement('div');
+        item.className = 'preview-item';
+        
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        img.alt = `Image ${index + 1}`;
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.innerHTML = '×';
+        removeBtn.title = 'Remove';
+        removeBtn.onclick = () => removeImage(index);
+        
+        // Caption badge
+        const captionBadge = document.createElement('div');
+        captionBadge.className = 'caption-badge';
+        captionBadge.textContent = captions[index] || 'No caption';
+        captionBadge.style.cssText = `
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 11px;
+            padding: 4px 6px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        `;
+        
+        // Click on preview to edit caption
+        item.onclick = (e) => {
+            if (e.target === removeBtn) return;
+            editCaption(index);
+        };
+        item.style.cursor = 'pointer';
+        
+        const indexBadge = document.createElement('div');
+        indexBadge.style.cssText = 'position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:white;font-size:10px;padding:2px 6px;border-radius:4px;';
+        indexBadge.textContent = index + 1;
+        
+        item.appendChild(img);
+        item.appendChild(removeBtn);
+        item.appendChild(captionBadge);
+        item.appendChild(indexBadge);
+        imagePreview.appendChild(item);
+    });
+}
+
+function editCaption(index) {
+    const currentCaption = captions[index] || '';
+    const newCaption = prompt(`Enter caption for image ${index + 1}:`, currentCaption);
+    if (newCaption !== null) {
+        captions[index] = newCaption.trim();
+        updatePreview();
+    }
+}
+
+function checkGenerateEnabled() {
+    // Button enabled when: images loaded + FFmpeg ready
+    const canGenerate = uploadedImages.length >= 1 && ffmpegReady;
+    generateBtn.disabled = !canGenerate;
+    
+    if (!canGenerate && uploadedImages.length >= 1 && !ffmpegReady) {
+        generateBtn.title = `FFmpeg not loaded (${ffmpegLoadError || 'unknown error'})`;
+    } else {
+        generateBtn.title = '';
+    }
+}
+
+// Slider updates
+durationSlider.addEventListener('input', () => {
+    durationValue.textContent = `${durationSlider.value} seconds`;
+});
+
+transitionSlider.addEventListener('input', () => {
+    transitionValue.textContent = `${transitionSlider.value} seconds`;
+});
+
+// Checkbox toggles
+enableText.addEventListener('change', () => {
+    textOptions.classList.toggle('show', enableText.checked);
+    updateTextPreview();
+});
+
+enableAudio.addEventListener('change', () => {
+    audioOptions.classList.toggle('show', enableAudio.checked);
+});
+
+overlayText.addEventListener('input', updateTextPreview);
+
+function updateTextPreview() {
+    if (enableText.checked && overlayText.value) {
+        textPreview.textContent = overlayText.value;
+    } else {
+        textPreview.textContent = 'Same caption will be used for all images (or edit per image)';
+    }
+}
+
+// Audio file
+audioInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        audioFile = e.target.files[0];
+        showToast(`Audio loaded: ${audioFile.name} (${(audioFile.size / 1024 / 1024).toFixed(2)} MB)`, 'success');
+    }
+});
+
+// Dropzone events
 dropzone.addEventListener('click', () => fileInput.click());
 
 dropzone.addEventListener('dragover', (e) => {
@@ -85,329 +286,270 @@ dropzone.addEventListener('dragleave', () => {
 dropzone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropzone.classList.remove('dragover');
-    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-    handleFiles(files);
+    handleFiles(e.dataTransfer.files);
 });
 
 fileInput.addEventListener('change', (e) => {
-    const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
-    handleFiles(files);
+    handleFiles(e.target.files);
+    fileInput.value = '';
 });
 
-enableText.addEventListener('change', (e) => {
-    textOptions.style.display = e.target.checked ? 'block' : 'none';
-    updateTextPreview();
-});
-
-enableAudio.addEventListener('change', (e) => {
-    audioOptions.style.display = e.target.checked ? 'block' : 'none';
-});
-
-overlayText.addEventListener('input', updateTextPreview);
-
-audioInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-        audioFile = e.target.files[0];
-    }
-});
-
-durationSlider.addEventListener('input', (e) => {
-    durationValue.textContent = `${e.target.value} seconds`;
-});
-
-transitionSlider.addEventListener('input', (e) => {
-    transitionValue.textContent = `${e.target.value} seconds`;
-});
-
-generateBtn.addEventListener('click', generateVideo);
-
-downloadBtn.addEventListener('click', () => {
-    const videoUrl = downloadSection.querySelector('a')?.href;
-    if (videoUrl) {
-        window.open(videoUrl, '_blank');
-    }
-});
-
-resetBtn.addEventListener('click', resetAll);
-
-// Functions
-function handleFiles(files) {
-    if (files.length === 0) return;
-    
-    files.forEach(file => {
-        if (uploadedImages.length < 50) { // Limit to 50 images
-            uploadedImages.push(file);
-        }
+// Retry FFmpeg button
+if (retryBtn) {
+    retryBtn.addEventListener('click', async () => {
+        showToast('Retrying FFmpeg load...', 'info');
+        await initFFmpeg();
     });
-    
-    updatePreview();
-    updateGenerateButton();
-    showToast(`Added ${files.length} image(s). Total: ${uploadedImages.length} images`, 'success');
 }
 
-function updatePreview() {
-    imagePreview.innerHTML = '';
-    imagePreview.classList.remove('hidden');
-    
-    uploadedImages.forEach((file, index) => {
-        const item = document.createElement('div');
-        item.className = 'preview-item';
-        
-        const img = document.createElement('img');
-        img.src = URL.createObjectURL(file);
-        img.alt = `Image ${index + 1}`;
-        
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'remove-btn';
-        removeBtn.innerHTML = '×';
-        removeBtn.title = 'Remove image';
-        removeBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            removeImage(index);
-        });
-        
-        const indexBadge = document.createElement('span');
-        indexBadge.className = 'index';
-        indexBadge.textContent = index + 1;
-        
-        item.appendChild(img);
-        item.appendChild(removeBtn);
-        item.appendChild(indexBadge);
-        imagePreview.appendChild(item);
-    });
-    
-    imageCount.textContent = uploadedImages.length;
-}
-
-function removeImage(index) {
-    uploadedImages.splice(index, 1);
-    updatePreview();
-    updateGenerateButton();
-    
-    if (uploadedImages.length === 0) {
-        imagePreview.classList.add('hidden');
-        imageCount.textContent = '0';
-    }
-}
-
-function updateGenerateButton() {
-    if (uploadedImages.length >= 1 && ffmpegLoaded) {
-        generateBtn.disabled = false;
-    } else {
-        generateBtn.disabled = true;
-    }
-}
-
-function updateTextPreview() {
-    if (enableText.checked && overlayText.value) {
-        textPreview.textContent = overlayText.value;
-    } else {
-        textPreview.textContent = 'Your text will appear here';
-    }
-}
-
-function showToast(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => toast.classList.add('show'), 10);
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
-
-function updateProgress(percent, label) {
-    progressContainer.style.display = 'block';
-    progressFill.style.width = `${percent}%`;
-    progressPercent.textContent = `${Math.round(percent)}%`;
-    progressLabel.textContent = label || 'Processing...';
-}
-
+// Main video generation
 async function generateVideo() {
-    if (isProcessing || uploadedImages.length === 0 || !ffmpegLoaded) return;
+    if (isProcessing || uploadedImages.length === 0 || !ffmpegReady) {
+        showToast('Cannot generate: ' + (uploadedImages.length === 0 ? 'No images' : 'FFmpeg not ready'), 'error');
+        return;
+    }
     
     isProcessing = true;
     generateBtn.disabled = true;
-    downloadSection.style.display = 'none';
+    generateBtn.textContent = '⏳ Processing...';
+    downloadSection.classList.remove('show');
+    
+    const ff = window.ffmpeg;
     
     try {
-        // Reset FFmpeg
-        await ffmpeg.terminate();
-        await ffmpeg.load({
-            coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js',
-            wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.wasm'
-        });
-        
-        updateProgress(5, 'Preparing files...');
-        
-        const width = parseInt(outputWidth.value);
-        const height = parseInt(outputHeight.value);
+        // Parse settings
+        const [width, height] = resolutionSelect.value.split('x').map(Number);
         const duration = parseFloat(durationSlider.value);
         const transitionDuration = parseFloat(transitionSlider.value);
-        const fps = 25;
+        const fps = 30;
         const totalFrames = Math.ceil(duration * fps);
-        const totalClips = uploadedImages.length;
-        const totalDuration = totalClips * duration;
+        const totalDuration = uploadedImages.length * duration;
         
-        // Create input directory
-        await ffmpeg.exec('mkdir -i /inputs');
+        // Reset FFmpeg
+        await ff.terminate();
+        await ff.load({
+            coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js',
+            wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/ffmpeg-core.wasm'
+        });
+        
+        showStatus('Preparing files...', 'loading');
+        progressFill.style.width = '5%';
+        progressPercent.textContent = '5%';
+        progressLabel.textContent = '📁 Preparing...';
         
         // Write images to virtual filesystem
         for (let i = 0; i < uploadedImages.length; i++) {
-            updateProgress(10 + (i * 15 / totalClips), `Loading image ${i + 1}/${totalClips}...`);
+            const percent = 5 + (i * 15 / uploadedImages.length);
+            progressFill.style.width = `${percent}%`;
+            progressPercent.textContent = `${Math.round(percent)}%`;
+            progressLabel.textContent = `📷 Loading image ${i + 1}/${uploadedImages.length}...`;
+            showStatus(`Loading image ${i + 1}/${uploadedImages.length}...`, 'loading');
+            
             const imageData = await uploadedImages[i].arrayBuffer();
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(imageData)));
-            const inputPath = `/inputs/image_${i.toString().padStart(3, '0')}.jpg`;
-            await ffmpeg.writeFile(inputPath, Uint8Array.from(atob(base64), c => c.charCodeAt(0)));
+            const data = new Uint8Array(imageData);
+            const filename = `input_${i.toString().padStart(3, '0')}.jpg`;
+            await ff.writeFile(filename, data);
         }
         
-        // Handle audio if provided
-        let audioFileName = null;
+        // Write audio if provided
         if (enableAudio.checked && audioFile) {
-            updateProgress(90, 'Loading audio...');
+            progressFill.style.width = '80%';
+            progressPercent.textContent = '80%';
+            progressLabel.textContent = '🎵 Loading audio...';
+            showStatus('Loading audio...', 'loading');
+            
             const audioData = await audioFile.arrayBuffer();
-            const audioBase64 = btoa(String.fromCharCode(...new Uint8Array(audioData)));
-            const audioPath = '/inputs/audio.mp3';
-            await ffmpeg.writeFile(audioPath, Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0)));
-            audioFileName = 'audio.mp3';
+            const audioDataArr = new Uint8Array(audioData);
+            await ff.writeFile('audio.mp3', audioDataArr);
         }
-        
-        updateProgress(95, 'Rendering video...');
         
         // Generate clips with Ken Burns effect
         for (let i = 0; i < uploadedImages.length; i++) {
-            const inputPath = `/inputs/image_${i.toString().padStart(3, '0')}.jpg`;
-            const clipPath = `/inputs/clip_${i.toString().padStart(3, '0')}.mp4`;
+            const percent = 85 + (i * 10 / uploadedImages.length);
+            progressFill.style.width = `${percent}%`;
+            progressPercent.textContent = `${Math.round(percent)}%`;
+            progressLabel.textContent = `🎬 Creating clip ${i + 1}/${uploadedImages.length}...`;
+            showStatus(`Creating clip ${i + 1}/${uploadedImages.length}...`, 'loading');
             
-            const zoomPanFilter = `zoompan=z='if(lte(zoom,1.3),zoom+0.002,1.3)':d=${totalFrames}:s=${width}x${height}:fps=${fps}`;
+            const inputFile = `input_${i.toString().padStart(3, '0')}.jpg`;
+            const clipFile = `clip_${i.toString().padStart(3, '0')}.mp4`;
+            
+            // Get caption for this specific image
+            const caption = captions[i] || (enableText.checked ? overlayText.value : '');
+            
+            // Ken Burns zoom effect
+            const zoomFilter = `zoompan=z='if(lte(zoom,1.35),zoom+0.0025,1.35)':d=${totalFrames}:s=${width}x${height}:fps=${fps}`;
             const fadeFilter = `fade=t=in:st=0:d=0.5,fade=t=out:st=${duration - 0.5}:d=0.5`;
             
             let textFilter = '';
-            if (enableText.checked && overlayText.value) {
-                const escapedText = overlayText.value.replace(/'/g, "\\'").replace(/:/g, '\\:');
-                textFilter = `,drawtext=text='${escapedText}':fontcolor=white:fontsize=24:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=h-80`;
+            if (caption) {
+                // Escape special characters for FFmpeg drawtext
+                const escaped = caption
+                    .replace(/\\/g, '\\\\')
+                    .replace(/:/g, '\\:')
+                    .replace(/'/g, "\\'")
+                    .replace(/=/g, '\\=')
+                    .replace(/,/g, '\\,')
+                    .replace(/%/g, '\\%');
+                textFilter = `,drawtext=text='${escaped}':fontcolor=white:fontsize=26:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=h-80`;
             }
             
-            const filter = `${zoomPanFilter},${fadeFilter}${textFilter}`;
-            const cmd = `-loop 1 -i ${inputPath} -vf "${filter}" -t ${duration} -c:v libx264 -pix_fmt yuv420p -r ${fps} -y ${clipPath}`;
+            const vf = `${zoomFilter},${fadeFilter}${textFilter}`;
+            const cmd = `-loop 1 -i ${inputFile} -vf "${vf}" -t ${duration} -c:v libx264 -pix_fmt yuv420p -r ${fps} -y ${clipFile}`;
             
-            updateProgress(95 + (i * 4 / totalClips), `Creating clip ${i + 1}/${totalClips}...`);
-            await ffmpeg.exec(cmd);
+            await ff.exec(cmd);
         }
         
-        // Create transition for each pair and concatenate
-        if (totalClips > 1) {
-            let concatList = '';
+        progressFill.style.width = '95%';
+        progressPercent.textContent = '95%';
+        progressLabel.textContent = '🔗 Combining clips with transitions...';
+        showStatus('Combining clips...', 'loading');
+        
+        // Create transitions and concatenate
+        if (uploadedImages.length > 1) {
+            // Create concat file with transitions
+            let concatContent = '';
             
-            // First clip
-            concatList += `file '/inputs/clip_000.mp4'\n`;
-            
-            for (let i = 1; i < totalClips; i++) {
-                const clip1 = `/inputs/clip_${(i-1).toString().padStart(3, '0')}.mp4`;
-                const clip2 = `/inputs/clip_${i.toString().padStart(3, '0')}.mp4`;
-                const transitionClip = `/inputs/transition_${i.toString().padStart(3, '0')}.mp4`;
+            for (let i = 0; i < uploadedImages.length - 1; i++) {
+                const clip1 = `clip_${i.toString().padStart(3, '0')}.mp4`;
+                const clip2 = `clip_${(i+1).toString().padStart(3, '0')}.mp4`;
+                const transFile = `trans_${i.toString().padStart(3, '0')}.mp4`;
                 
-                const xfadeFilter = `[0:v][1:v]xfade=transition=fade:duration=${transitionDuration}:offset=0[outv]`;
-                const cmd = `-i ${clip1} -i ${clip2} -filter_complex "${xfadeFilter}" -map "[outv]" -c:v libx264 -pix_fmt yuv420p -y ${transitionClip}`;
+                const xfadeCmd = `-i ${clip1} -i ${clip2} -filter_complex "[0:v][1:v]xfade=transition=fade:duration=${transitionDuration}:offset=0[outv]" -map "[outv]" -c:v libx264 -pix_fmt yuv420p -y ${transFile}`;
+                await ff.exec(xfadeCmd);
                 
-                await ffmpeg.exec(cmd);
-                concatList += `file '/inputs/transition_${i.toString().padStart(3, '0')}.mp4'\n`;
+                if (i === 0) {
+                    concatContent += `file '${transFile}'\n`;
+                } else {
+                    concatContent += `file '${transFile}'\n`;
+                }
             }
             
-            // Write concat file
-            await ffmpeg.writeFile('/inputs/concat_list.txt', concatList);
+            // Add last clip
+            const lastClip = `clip_${(uploadedImages.length - 1).toString().padStart(3, '0')}.mp4`;
+            concatContent += `file '${lastClip}'\n`;
             
-            // Concatenate all clips
-            const concatCmd = `-f concat -safe 0 -i /inputs/concat_list.txt -c copy -y /outputs/final.mp4`;
-            await ffmpeg.exec(concatCmd);
+            await ff.writeFile('concat.txt', concatContent);
+            
+            const concatCmd = `-f concat -safe 0 -i concat.txt -c copy -y output.mp4`;
+            await ff.exec(concatCmd);
         } else {
-            // Single clip - just rename/copy
-            await ffmpeg.exec(`-i /inputs/clip_000.mp4 -c copy -y /outputs/final.mp4`);
+            // Single clip
+            const clipFile = `clip_000.mp4`;
+            await ff.exec(`-i ${clipFile} -c copy -y output.mp4`);
         }
+        
+        progressFill.style.width = '98%';
+        progressPercent.textContent = '98%';
+        progressLabel.textContent = '🎵 Adding audio...';
+        showStatus('Adding audio...', 'loading');
         
         // Add audio if provided
-        if (audioFileName) {
-            updateProgress(99, 'Adding audio...');
-            await ffmpeg.exec(`-i /outputs/final.mp4 -i /inputs/audio.mp3 -c:v copy -c:a aac -shortest -y /outputs/final_with_audio.mp4`);
-            await ffmpeg.exec(`mv /outputs/final_with_audio.mp4 /outputs/final.mp4`);
+        if (enableAudio.checked && audioFile) {
+            await ff.exec('-i output.mp4 -i audio.mp3 -c:v copy -c:a aac -shortest -y output_audio.mp4');
+            await ff.exec('mv output_audio.mp4 output.mp4');
         }
         
-        // Read output file
-        updateProgress(100, 'Finalizing...');
-        const outputData = await ffmpeg.readFile('/outputs/final.mp4');
+        progressFill.style.width = '100%';
+        progressPercent.textContent = '100%';
+        progressLabel.textContent = '✅ Finalizing...';
+        showStatus('Finalizing...', 'loading');
         
-        // Create download
+        // Read output
+        const outputData = await ff.readFile('output.mp4');
         const blob = new Blob([outputData], { type: 'video/mp4' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'property_tour.mp4';
-        a.click();
         
-        // Display info
-        fileSize.textContent = `Size: ${(blob.size / (1024 * 1024)).toFixed(2)} MB`;
-        fileDuration.textContent = `Duration: ${totalDuration.toFixed(1)} seconds`;
+        // Update download section
+        fileSize.textContent = `📦 File size: ${(blob.size / (1024 * 1024)).toFixed(2)} MB`;
+        fileDuration.textContent = `⏱️ Duration: ${totalDuration.toFixed(1)} seconds (${uploadedImages.length} clips × ${duration}s)`;
         
-        // Show download section
         downloadSection.innerHTML = `
             <h2>✅ Video Ready!</h2>
             <p class="download-info">
-                <span id="fileSize">${fileSize.textContent}</span> · 
-                <span id="fileDuration">${fileDuration.textContent}</span>
+                ${fileSize.textContent} · ${fileDuration.textContent}
             </p>
-            <button id="downloadBtn" class="btn-secondary">
-                ⬇️ Download Video
-            </button>
-            <button id="resetBtn" class="btn-ghost">
-                🔄 Create Another Video
-            </button>
+            <a href="${url}" download="property_tour.mp4" style="
+                display: inline-block;
+                background: #10b981;
+                color: white;
+                padding: 0.85rem 2rem;
+                font-size: 1rem;
+                font-weight: 600;
+                border-radius: 10px;
+                text-decoration: none;
+                margin: 0.5rem;
+            ">⬇️ Download Video</a>
+            <button class="btn-ghost" onclick="resetAll()" style="
+                background: transparent;
+                color: #64748b;
+                border: 1px solid #e2e8f0;
+                padding: 0.85rem 2rem;
+                font-size: 1rem;
+                border-radius: 10px;
+                cursor: pointer;
+                margin: 0.5rem;
+            ">🔄 Create Another Video</button>
         `;
-        downloadSection.querySelector('#downloadBtn').addEventListener('click', () => {
-            window.open(url, '_blank');
-        });
-        downloadSection.querySelector('#resetBtn').addEventListener('click', resetAll);
-        downloadSection.style.display = 'block';
+        downloadSection.classList.add('show');
         
+        showStatus('✅ Done!', 'success');
         showToast('🎉 Video created successfully!', 'success');
         
     } catch (error) {
-        console.error('Video generation failed:', error);
-        showToast(`❌ Error creating video: ${error.message}`, 'error');
+        console.error('Video generation error:', error);
+        showStatus('❌ Error', 'error');
+        showToast(`❌ Error creating video: ${error.message || error}`, 'error');
     } finally {
         isProcessing = false;
-        generateBtn.disabled = uploadedImages.length === 0;
+        if (!downloadSection.classList.contains('show')) {
+            generateBtn.disabled = !(uploadedImages.length >= 1 && ffmpegReady);
+            generateBtn.textContent = '🎬 Generate Video';
+        }
     }
 }
 
+generateBtn.addEventListener('click', generateVideo);
+
+// Reset
 function resetAll() {
     uploadedImages = [];
+    captions = [];
     audioFile = null;
-    imagePreview.innerHTML = '';
-    imagePreview.classList.add('hidden');
-    imageCount.textContent = '0';
-    updateGenerateButton();
-    downloadSection.style.display = 'none';
-    progressContainer.style.display = 'none';
-    fileInput.value = '';
     audioInput.value = '';
     overlayText.value = '';
-    textPreview.textContent = 'Your text will appear here';
+    textPreview.textContent = 'Same caption will be used for all images (or edit per image)';
     enableText.checked = false;
-    textOptions.style.display = 'none';
+    textOptions.classList.remove('show');
     enableAudio.checked = false;
-    audioOptions.style.display = 'none';
+    audioOptions.classList.remove('show');
+    imagePreview.innerHTML = '';
+    imagePreview.style.display = 'none';
+    imageCount.textContent = '0';
+    downloadSection.classList.remove('show');
+    progressContainer.style.display = 'none';
+    generateBtn.disabled = true;
+    generateBtn.textContent = '🎬 Generate Video';
     
-    // Reset to defaults
-    durationSlider.value = '5';
-    durationValue.textContent = '5 seconds';
+    durationSlider.value = '2.5';
+    durationValue.textContent = '2.5 seconds';
     transitionSlider.value = '0.5';
     transitionValue.textContent = '0.5 seconds';
-    outputWidth.value = '1920';
-    outputHeight.value = '1080';
+    resolutionSelect.value = '1920x1080';
+    
+    showStatus('Ready', 'idle');
 }
 
-// Start initialization
-init();
+// Initialize on page load
+window.addEventListener('load', () => {
+    showStatus('Initializing...', 'loading');
+    initFFmpeg();
+});
+
+// Handle page visibility change - reload FFmpeg if needed
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && !ffmpegReady) {
+        // Try to reinitialize if page was backgrounded during load
+        initFFmpeg();
+    }
+});
