@@ -11,18 +11,39 @@
     function init() {
         console.log('[RealEstateVideoMaker] Initializing...');
         
+        // Check FFmpeg library - handle UMD module pattern
         const FFmpegLib = window.FFmpeg;
-        console.log('[RealEstateVideoMaker] FFmpeg library loaded:', typeof FFmpegLib);
+        console.log('[RealEstateVideoMaker] FFmpeg library:', typeof FFmpegLib);
         
         if (!FFmpegLib) {
-            console.error('[RealEstateVideoMaker] FFmpeg library not found!');
+            console.error('[RealEstateVideoMaker] FFmpeg library not found on window!');
             showError('FFmpeg library failed to load. Check browser console (F12).');
+            return;
+        }
+        
+        // UMD modules may attach FFmpeg differently
+        // Try to get the actual constructor
+        let FFmpegConstructor = FFmpegLib;
+        if (typeof FFmpegLib === 'object' && FFmpegLib !== null) {
+            // Might be { FFmpeg: function } or similar
+            if (typeof FFmpegLib.FFmpeg === 'function') {
+                FFmpegConstructor = FFmpegLib.FFmpeg;
+                console.log('[RealEstateVideoMaker] Found FFmpeg constructor in object');
+            } else if (typeof FFmpegLib.default === 'function') {
+                FFmpegConstructor = FFmpegLib.default;
+                console.log('[RealEstateVideoMaker] Found FFmpeg constructor in default export');
+            }
+        }
+        
+        if (typeof FFmpegConstructor !== 'function') {
+            console.error('[RealEstateVideoMaker] FFmpeg is not a constructor:', typeof FFmpegConstructor, FFmpegConstructor);
+            showError('FFmpeg library loaded but not in expected format. Check browser console (F12).');
             return;
         }
         
         console.log('[RealEstateVideoMaker] Creating FFmpeg instance...');
         
-        const ffmpeg = new FFmpegLib();
+        const ffmpeg = new FFmpegConstructor();
         window.ffmpeg = ffmpeg;
         console.log('[RealEstateVideoMaker] FFmpeg instance:', ffmpeg);
         
