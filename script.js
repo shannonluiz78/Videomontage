@@ -8,38 +8,23 @@
 (function() {
     'use strict';
     
-    // Wait for DOM
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-    
     function init() {
         console.log('[RealEstateVideoMaker] Initializing...');
         
-        // Check FFmpeg library
         const FFmpegLib = window.FFmpeg;
-        console.log('[RealEstateVideoMaker] FFmpeg library:', FFmpegLib);
+        console.log('[RealEstateVideoMaker] FFmpeg library loaded:', typeof FFmpegLib);
         
         if (!FFmpegLib) {
-            console.error('[RealEstateVideoMaker] FFmpeg library not found on window!');
+            console.error('[RealEstateVideoMaker] FFmpeg library not found!');
             showError('FFmpeg library failed to load. Check browser console (F12).');
             return;
         }
         
-        if (typeof FFmpegLib !== 'function') {
-            console.error('[RealEstateVideoMaker] FFmpeg is not a function:', typeof FFmpegLib);
-            showError('FFmpeg library loaded but not in expected format. Check browser console (F12).');
-            return;
-        }
+        console.log('[RealEstateVideoMaker] Creating FFmpeg instance...');
         
-        console.log('[RealEstateVideoMaker] FFmpeg library OK, creating instance...');
-        
-        // Create FFmpeg instance
         const ffmpeg = new FFmpegLib();
         window.ffmpeg = ffmpeg;
-        console.log('[RealEstateVideoMaker] FFmpeg instance created:', ffmpeg);
+        console.log('[RealEstateVideoMaker] FFmpeg instance:', ffmpeg);
         
         // State
         let uploadedImages = [];
@@ -102,28 +87,40 @@
             if (els.generateBtn) els.generateBtn.disabled = true;
         }
         
-        // FFmpeg load
+        // Update progress UI
+        function updateProgress(percent, label) {
+            if (els.progressFill) els.progressFill.style.width = `${percent}%`;
+            if (els.progressPercent) els.progressPercent.textContent = `${Math.round(percent)}%`;
+            if (els.progressLabel) els.progressLabel.textContent = label || 'Processing...';
+        }
+        
+        // FFmpeg load with progress
         async function loadFFmpeg() {
             try {
-                setStatus('Loading FFmpeg core (~30MB)...', 'loading');
+                setStatus('Loading FFmpeg core...', 'loading');
                 if (els.progressContainer) els.progressContainer.style.display = 'block';
-                if (els.progressFill) els.progressFill.style.width = '30%';
-                if (els.progressPercent) els.progressPercent.textContent = '30%';
-                if (els.progressLabel) els.progressLabel.textContent = '📥 Downloading...';
-                if (els.generateBtn) els.generateBtn.disabled = true;
+                updateProgress(10, 'Starting download...');
                 
-                console.log('[RealEstateVideoMaker] Loading FFmpeg core from ./js/ffmpeg-core.js');
+                console.log('[RealEstateVideoMaker] Loading FFmpeg core...');
+                
                 await ffmpeg.load({
                     coreURL: './js/ffmpeg-core.js',
-                    wasmURL: './js/ffmpeg-core.wasm'
+                    wasmURL: './js/ffmpeg-core.wasm',
+                    progress: (res) => {
+                        if (res.total !== undefined && res.total > 0) {
+                            const percent = Math.round((res.loaded / res.total) * 100);
+                            updateProgress(percent, `Downloading FFmpeg core... ${percent}%`);
+                            console.log(`[RealEstateVideoMaker] Download progress: ${percent}%`);
+                        } else {
+                            updateProgress(50, 'Processing FFmpeg core...');
+                        }
+                    }
                 });
                 
                 ffmpegReady = true;
-                console.log('[RealEstateVideoMaker] FFmpeg loaded successfully');
+                console.log('[RealEstateVideoMaker] FFmpeg loaded successfully!');
                 setStatus('FFmpeg ready ✓', 'success');
-                if (els.progressFill) els.progressFill.style.width = '100%';
-                if (els.progressPercent) els.progressPercent.textContent = '100%';
-                if (els.progressLabel) els.progressLabel.textContent = '✅ FFmpeg loaded!';
+                updateProgress(100, '✅ FFmpeg loaded!');
                 
                 setTimeout(() => {
                     if (els.progressContainer) els.progressContainer.style.display = 'none';
@@ -134,11 +131,10 @@
             } catch (err) {
                 console.error('[RealEstateVideoMaker] FFmpeg load error:', err);
                 ffmpegReady = false;
-                showError(`Failed to load video processor: ${err.message || err}`);
+                showError(`FFmpeg load failed: ${err.message || err}`);
             }
         }
         
-        // Check if generate enabled
         function checkGenerateEnabled() {
             if (!els.generateBtn) return;
             els.generateBtn.disabled = !(uploadedImages.length >= 1 && ffmpegReady);
@@ -254,7 +250,6 @@
                 return;
             }
             showToast('⏳ Generating video... This may take a while', 'info');
-            // Video generation would go here
         });
         
         if (els.resetBtn) els.resetBtn.addEventListener('click', () => {
@@ -281,7 +276,14 @@
         
         // Start
         console.log('[RealEstateVideoMaker] Starting FFmpeg load...');
-        setStatus('Initializing FFmpeg...', 'loading');
+        setStatus('Initializing...', 'loading');
+        updateProgress(5, 'Starting...');
         loadFFmpeg();
+    }
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
     }
 })();
