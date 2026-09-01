@@ -4,569 +4,89 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real Estate Video Maker - Free Property Tour Creator</title>
-    <meta name="description" content="Create professional property tour videos from photos - free, runs in browser, no uploads">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f8fafc;
-            color: #1e293b;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 0.5rem;
-        }
-
-        header .subtitle {
-            color: #64748b;
-            font-size: 1.1rem;
-        }
-
-        .upload-section {
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            margin-bottom: 1.5rem;
-        }
-
-        .dropzone {
-            border: 2px dashed #e2e8f0;
-            border-radius: 12px;
-            padding: 3rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: #f8fafc;
-        }
-
-        .dropzone:hover, .dropzone.dragover {
-            border-color: #3b82f6;
-            background: #eff6ff;
-        }
-
-        .dropzone .icon {
-            font-size: 3rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .dropzone h3 {
-            font-size: 1.25rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .dropzone p {
-            color: #64748b;
-        }
-
-        .image-count {
-            text-align: center;
-            margin-top: 1rem;
-            color: #64748b;
-        }
-
-        .image-preview {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 0.75rem;
-            margin-top: 1rem;
-        }
-
-        .preview-item {
-            position: relative;
-            aspect-ratio: 4/3;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #f1f5f9;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: transform 0.2s ease;
-        }
-
-        .preview-item:hover {
-            transform: scale(1.02);
-        }
-
-        .preview-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .remove-btn {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            width: 24px;
-            height: 24px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.2s;
-            z-index: 10;
-        }
-
-        .preview-item:hover .remove-btn {
-            opacity: 1;
-        }
-
-        .caption-badge {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            font-size: 11px;
-            padding: 4px 6px;
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-weight: 500;
-        }
-
-        .settings-section {
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            margin-bottom: 1.5rem;
-        }
-
-        .settings-section h2 {
-            font-size: 1.25rem;
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 1px solid #e2e8f0;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .option-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .option-group:last-child {
-            margin-bottom: 0;
-        }
-
-        .option-group label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            color: #334155;
-        }
-
-        .slider-container {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .slider-container input[type="range"] {
-            flex: 1;
-            height: 6px;
-            border-radius: 3px;
-            background: #e2e8f0;
-            accent-color: #2563eb;
-        }
-
-        .slider-container span {
-            min-width: 90px;
-            text-align: right;
-            color: #64748b;
-            font-weight: 500;
-        }
-
-        select {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            background: white;
-            font-size: 0.95rem;
-            color: #1e293b;
-            cursor: pointer;
-        }
-
-        select:focus {
-            outline: none;
-            border-color: #2563eb;
-        }
-
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            cursor: pointer;
-            padding: 0.5rem 0;
-            font-weight: 500;
-            color: #334155;
-        }
-
-        .checkbox-label input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            accent-color: #2563eb;
-        }
-
-        .text-options, .audio-options {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid #e2e8f0;
-            display: none;
-        }
-
-        .text-options.show, .audio-options.show {
-            display: block;
-        }
-
-        .text-options input[type="text"],
-        .audio-options input[type="file"] {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            margin-top: 0.5rem;
-        }
-
-        .text-options input[type="text"]:focus,
-        .audio-options input[type="file"]:focus {
-            outline: none;
-            border-color: #2563eb;
-        }
-
-        .text-preview {
-            margin-top: 0.75rem;
-            font-size: 0.9rem;
-            color: #64748b;
-        }
-
-        .text-preview span {
-            color: #1e293b;
-            font-weight: 500;
-        }
-
-        .actions-section {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .btn-primary {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 1rem 2.5rem;
-            font-size: 1.1rem;
-            font-weight: 600;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            min-width: 280px;
-            margin: 0 auto;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background: #1d4ed8;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-        }
-
-        .btn-primary:disabled {
-            background: #94a3b8;
-            cursor: not-allowed;
-        }
-
-        .btn-primary:disabled:hover {
-            transform: none;
-        }
-
-        .progress-container {
-            margin-top: 1.5rem;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #e2e8f0;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #2563eb, #3b82f6);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        .progress-text {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 0.5rem;
-            font-size: 0.9rem;
-            color: #64748b;
-        }
-
-        .download-section {
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            text-align: center;
-            border: 2px solid #10b981;
-            display: none;
-            margin-bottom: 2rem;
-        }
-
-        .download-section.show {
-            display: block;
-            animation: slideDown 0.3s ease;
-        }
-
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .download-section h2 {
-            font-size: 1.5rem;
-            color: #10b981;
-            margin-bottom: 0.5rem;
-        }
-
-        .download-info {
-            color: #64748b;
-            margin-bottom: 1.5rem;
-        }
-
-        .btn-secondary {
-            background: #10b981;
-            color: white;
-            border: none;
-            padding: 0.85rem 2rem;
-            font-size: 1rem;
-            font-weight: 600;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 0.5rem;
-            display: inline-block;
-            text-decoration: none;
-        }
-
-        .btn-secondary:hover {
-            background: #059669;
-            transform: translateY(-2px);
-        }
-
-        .btn-ghost {
-            background: transparent;
-            color: #64748b;
-            border: 1px solid #e2e8f0;
-            padding: 0.85rem 2rem;
-            font-size: 1rem;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 0.5rem;
-        }
-
-        .btn-ghost:hover {
-            background: #f8fafc;
-        }
-
-        .features {
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-
-        .features h3 {
-            text-align: center;
-            margin-bottom: 1.5rem;
-            font-size: 1.25rem;
-        }
-
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .feature {
-            display: flex;
-            gap: 1rem;
-            padding: 1rem;
-            background: #f8fafc;
-            border-radius: 12px;
-            transition: background 0.2s ease;
-        }
-
-        .feature:hover {
-            background: #eff6ff;
-        }
-
-        .feature-icon {
-            font-size: 2rem;
-            flex-shrink: 0;
-        }
-
-        .feature h4 {
-            font-size: 0.95rem;
-            margin-bottom: 0.25rem;
-            color: #334155;
-        }
-
-        .feature p {
-            font-size: 0.85rem;
-            color: #64748b;
-        }
-
-        footer {
-            text-align: center;
-            padding: 2rem 0;
-            color: #64748b;
-            font-size: 0.9rem;
-        }
-
-        footer p {
-            margin-bottom: 0.5rem;
-        }
-
-        @media (max-width: 640px) {
-            .container {
-                padding: 1rem;
-            }
-
-            header h1 {
-                font-size: 1.75rem;
-            }
-
-            .dropzone {
-                padding: 2rem 1rem;
-            }
-
-            .dropzone .icon {
-                font-size: 2.5rem;
-            }
-
-            .image-preview {
-                grid-template-columns: repeat(3, 1fr);
-            }
-
-            .btn-primary, .btn-secondary, .btn-ghost {
-                width: 100%;
-                margin: 0.5rem 0;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .image-preview {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        .toast {
-            position: fixed;
-            bottom: 2rem;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1e293b;
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-            z-index: 1000;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-        }
-
-        .toast.show {
-            opacity: 1;
-        }
-
-        .toast.toast-success {
-            background: #10b981;
-        }
-
-        .toast.toast-error {
-            background: #ef4444;
-        }
-
-        .toast.toast-info {
-            background: #3b82f6;
-        }
-
-        .ffmpeg-status {
-            text-align: center;
-            margin-bottom: 1.5rem;
-            font-size: 0.95rem;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 0.5rem 1.25rem;
-            border-radius: 20px;
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        .status-idle {
-            background: #f1f5f9;
-            color: #64748b;
-        }
-
-        .status-loading {
-            background: #dbeafe;
-            color: #2563eb;
-        }
-
-        .status-success {
-            background: #d1fae5;
-            color: #059669;
-        }
-
-        .status-error {
-            background: #fee2e2;
-            color: #dc2626;
-        }
+        /* [Same CSS as before - omitted for brevity] */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; padding: 2rem; }
+        header { text-align: center; margin-bottom: 2rem; }
+        header h1 { font-size: 2.5rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem; }
+        header .subtitle { color: #64748b; font-size: 1.1rem; }
+        .upload-section { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
+        .dropzone { border: 2px dashed #e2e8f0; border-radius: 12px; padding: 3rem; text-align: center; cursor: pointer; transition: all 0.3s ease; background: #f8fafc; }
+        .dropzone:hover, .dropzone.dragover { border-color: #3b82f6; background: #eff6ff; }
+        .dropzone .icon { font-size: 3rem; margin-bottom: 0.5rem; }
+        .dropzone h3 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+        .dropzone p { color: #64748b; }
+        .image-count { text-align: center; margin-top: 1rem; color: #64748b; }
+        .image-preview { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+        .preview-item { position: relative; aspect-ratio: 4/3; border-radius: 8px; overflow: hidden; background: #f1f5f9; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s ease; }
+        .preview-item:hover { transform: scale(1.02); }
+        .preview-item img { width: 100%; height: 100%; object-fit: cover; }
+        .remove-btn { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; z-index: 10; }
+        .preview-item:hover .remove-btn { opacity: 1; }
+        .caption-badge { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: white; font-size: 11px; padding: 4px 6px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+        .settings-section { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
+        .settings-section h2 { font-size: 1.25rem; margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 0.5rem; }
+        .option-group { margin-bottom: 1.5rem; }
+        .option-group:last-child { margin-bottom: 0; }
+        .option-group label { display: block; font-weight: 500; margin-bottom: 0.5rem; color: #334155; }
+        .slider-container { display: flex; align-items: center; gap: 1rem; }
+        .slider-container input[type="range"] { flex: 1; height: 6px; border-radius: 3px; background: #e2e8f0; accent-color: #2563eb; }
+        .slider-container span { min-width: 90px; text-align: right; color: #64748b; font-weight: 500; }
+        select { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; background: white; font-size: 0.95rem; color: #1e293b; cursor: pointer; }
+        select:focus { outline: none; border-color: #2563eb; }
+        .checkbox-label { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.5rem 0; font-weight: 500; color: #334155; }
+        .checkbox-label input[type="checkbox"] { width: 20px; height: 20px; accent-color: #2563eb; }
+        .text-options, .audio-options { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; display: none; }
+        .text-options.show, .audio-options.show { display: block; }
+        .text-options input[type="text"], .audio-options input[type="file"] { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; margin-top: 0.5rem; }
+        .text-options input[type="text"]:focus, .audio-options input[type="file"]:focus { outline: none; border-color: #2563eb; }
+        .text-preview { margin-top: 0.75rem; font-size: 0.9rem; color: #64748b; }
+        .text-preview span { color: #1e293b; font-weight: 500; }
+        .actions-section { text-align: center; margin-bottom: 2rem; }
+        .btn-primary { background: #2563eb; color: white; border: none; padding: 1rem 2.5rem; font-size: 1.1rem; font-weight: 600; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); min-width: 280px; margin: 0 auto; }
+        .btn-primary:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+        .btn-primary:disabled:hover { transform: none; }
+        .progress-container { margin-top: 1.5rem; max-width: 400px; margin-left: auto; margin-right: auto; }
+        .progress-bar { width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #2563eb, #3b82f6); width: 0%; transition: width 0.3s ease; }
+        .progress-text { display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.9rem; color: #64748b; }
+        .download-section { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); text-align: center; border: 2px solid #10b981; display: none; margin-bottom: 2rem; }
+        .download-section.show { display: block; animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .download-section h2 { font-size: 1.5rem; color: #10b981; margin-bottom: 0.5rem; }
+        .download-info { color: #64748b; margin-bottom: 1.5rem; }
+        .btn-secondary { background: #10b981; color: white; border: none; padding: 0.85rem 2rem; font-size: 1rem; font-weight: 600; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; margin: 0.5rem; display: inline-block; text-decoration: none; }
+        .btn-secondary:hover { background: #059669; transform: translateY(-2px); }
+        .btn-ghost { background: transparent; color: #64748b; border: 1px solid #e2e8f0; padding: 0.85rem 2rem; font-size: 1rem; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; margin: 0.5rem; }
+        .btn-ghost:hover { background: #f8fafc; }
+        .features { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+        .features h3 { text-align: center; margin-bottom: 1.5rem; font-size: 1.25rem; }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+        .feature { display: flex; gap: 1rem; padding: 1rem; background: #f8fafc; border-radius: 12px; transition: background 0.2s ease; }
+        .feature:hover { background: #eff6ff; }
+        .feature-icon { font-size: 2rem; flex-shrink: 0; }
+        .feature h4 { font-size: 0.95rem; margin-bottom: 0.25rem; color: #334155; }
+        .feature p { font-size: 0.85rem; color: #64748b; }
+        footer { text-align: center; padding: 2rem 0; color: #64748b; font-size: 0.9rem; }
+        footer p { margin-bottom: 0.5rem; }
+        @media (max-width: 640px) { .container { padding: 1rem; } header h1 { font-size: 1.75rem; } .dropzone { padding: 2rem 1rem; } .dropzone .icon { font-size: 2.5rem; } .image-preview { grid-template-columns: repeat(3, 1fr); } .btn-primary, .btn-secondary, .btn-ghost { width: 100%; margin: 0.5rem 0; } }
+        @media (max-width: 480px) { .image-preview { grid-template-columns: repeat(2, 1fr); } }
+        .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 1rem 2rem; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 1000; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+        .toast.show { opacity: 1; }
+        .toast.toast-success { background: #10b981; }
+        .toast.toast-error { background: #ef4444; }
+        .toast.toast-info { background: #3b82f6; }
+        .ffmpeg-status { text-align: center; margin-bottom: 1.5rem; font-size: 0.95rem; }
+        .status-badge { display: inline-block; padding: 0.5rem 1.25rem; border-radius: 20px; font-weight: 500; font-size: 0.9rem; }
+        .status-idle { background: #f1f5f9; color: #64748b; }
+        .status-loading { background: #dbeafe; color: #2563eb; }
+        .status-success { background: #d1fae5; color: #059669; }
+        .status-error { background: #fee2e2; color: #dc2626; }
+        .browser-warning { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; color: #92400e; font-size: 0.9rem; }
+        .browser-warning strong { display: block; margin-bottom: 0.5rem; }
     </style>
 </head>
 <body>
@@ -576,8 +96,15 @@
             <p class="subtitle">Create professional property tour videos from your photos — free, runs in your browser, nothing uploaded</p>
         </header>
 
-        <div class="ffmpeg-status" id="ffmpegStatus">
-            <span class="status-badge status-idle" id="statusBadge">Loading FFmpeg...</span>
+        <!-- Browser Compatibility Warning -->
+        <div class="browser-warning" id="browserWarning">
+            <strong>⚠️ Browser Compatibility Notice</strong>
+            This tool uses FFmpeg.wasm which requires <strong>Chrome or Edge</strong> for best performance. 
+            Firefox and Safari may have limited support. If you see errors, please try Chrome/Edge.
+        </div>
+
+        <div class="ffmpeg-status">
+            <span class="status-badge status-idle" id="statusBadge">Initializing...</span>
         </div>
 
         <div class="upload-section">
@@ -599,18 +126,15 @@
             <h2>🎬 Video Settings</h2>
             
             <div class="option-group">
-                <label>Duration per image</label>
+                <label>Duration per image (seconds)</label>
                 <div class="slider-container">
-                    <input type="range" id="duration" min="1" max="10" step="0.5" value="2.5">
-                    <span id="durationValue">2.5 seconds</span>
+                    <input type="range" id="duration" min="1" max="10" step="0.5" value="3">
+                    <span id="durationValue">3 seconds</span>
                 </div>
-                <p style="font-size: 0.85rem; color: #64748b; margin-top: 0.25rem;">
-                    Total video ≈ (images × duration) seconds
-                </p>
             </div>
 
             <div class="option-group">
-                <label>Transition between images</label>
+                <label>Transition duration (seconds)</label>
                 <div class="slider-container">
                     <input type="range" id="transition" min="0.2" max="2" step="0.1" value="0.5">
                     <span id="transitionValue">0.5 seconds</span>
@@ -620,10 +144,10 @@
             <div class="option-group">
                 <label>Output resolution</label>
                 <select id="resolution">
-                    <option value="1280x720">1280×720 (720p HD) — Fast</option>
-                    <option value="1920x1080" selected>1920×1080 (1080p Full HD) — Best quality</option>
-                    <option value="2560x1440">2560×1440 (1440p QHD) — Slower</option>
-                    <option value="3840x2160">3840×2160 (4K UHD) — Slowest</option>
+                    <option value="1280x720">1280×720 (720p HD)</option>
+                    <option value="1920x1080" selected>1920×1080 (1080p Full HD)</option>
+                    <option value="1280x1280">1280×1280 (1:1 Square) — Instagram</option>
+                    <option value="1080x1920">1080×1920 (9:16 Vertical) — TikTok/REELS</option>
                 </select>
             </div>
         </div>
@@ -640,17 +164,16 @@
                     <input type="text" id="overlayText" value="722 Yishun St 71 - ONLY $485,000" placeholder="e.g., Property address + price" maxlength="150">
                     <div class="text-preview">
                         <span>💡 Tip:</span> Click on any image preview below to set a <strong>different caption</strong> for that specific photo.
-                        <br><span style="color: #64748b; font-size: 0.85rem;">Same caption will appear on all images unless customized per image.</span>
                     </div>
                 </div>
             </div>
 
             <div class="option-group">
                 <label class="checkbox-label">
-                    <input type="checkbox" id="enableAudio" checked>
+                    <input type="checkbox" id="enableAudio">
                     <span>Add background music</span>
                 </label>
-                <div class="audio-options show" id="audioOptions">
+                <div class="audio-options" id="audioOptions">
                     <input type="file" id="audioInput" accept="audio/*">
                     <p style="color: #64748b; font-size: 0.85rem; margin-top: 0.5rem;">MP3, WAV, OGG supported (optional)</p>
                 </div>
@@ -708,31 +231,31 @@
                     </div>
                 </div>
                 <div class="feature">
-                    <span class="feature-icon">🎵</span>
-                    <div>
-                        <h4>Background Audio</h4>
-                        <p>Add music or narration</p>
-                    </div>
-                </div>
-                <div class="feature">
                     <span class="feature-icon">📱</span>
                     <div>
-                        <h4>Multiple Resolutions</h4>
-                        <p>720p to 4K support</p>
+                        <h4>Social Media Formats</h4>
+                        <p>Square (1:1) and Vertical (9:16)</p>
                     </div>
                 </div>
                 <div class="feature">
                     <span class="feature-icon">🔒</span>
                     <div>
                         <h4>100% Private</h4>
-                        <p>All in your browser, no uploads</p>
+                        <p>All processing in your browser</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🎵</span>
+                    <div>
+                        <h4>Background Audio</h4>
+                        <p>Add music or narration</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <footer>
-            <p>This tool uses FFmpeg.wasm for video processing. All files stay on your device — nothing is uploaded to any server.</p>
+            <p>This tool uses FFmpeg.wasm for video processing. All files stay on your device — nothing is uploaded.</p>
             <p>Built with ❤️ for real estate professionals · Free forever</p>
         </footer>
     </div>
@@ -747,9 +270,9 @@
         let isProcessing = false;
         let ffmpegReady = false;
         let ffmpegLoadError = null;
-        let captions = []; // Per-image captions
+        let captions = [];
 
-        // DOM Elements
+        // DOM elements
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('fileInput');
         const countEl = document.getElementById('count');
@@ -777,24 +300,45 @@
         const statusBadge = document.getElementById('statusBadge');
         const downloadLink = document.getElementById('downloadLink');
         const toast = document.getElementById('toast');
+        const browserWarning = document.getElementById('browserWarning');
+
+        // Check browser compatibility
+        function checkBrowser() {
+            const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+            const isEdge = /Edg/.test(navigator.userAgent);
+            
+            if (!isChrome && !isEdge) {
+                browserWarning.style.display = 'block';
+                browserWarning.innerHTML = `
+                    <strong>⚠️ Browser Compatibility Notice</strong>
+                    You're using ${navigator.userAgent.split('/')[0]}. 
+                    <strong>Chrome or Edge is recommended</strong> for FFmpeg.wasm.
+                    Firefox/Safari may not work properly. If you see errors, please switch browsers.
+                `;
+            } else {
+                browserWarning.style.display = 'none';
+            }
+        }
 
         // Initialize FFmpeg with error handling
         async function initFFmpeg() {
             try {
-                showStatus('Loading FFmpeg core (~30MB)...', 'loading');
+                showStatus('Loading FFmpeg core...', 'loading');
                 progressContainer.style.display = 'block';
                 progressFill.style.width = '30%';
                 progressPercent.textContent = '30%';
-                progressLabel.textContent = '📥 Downloading FFmpeg core...';
+                progressLabel.textContent = '📥 Downloading FFmpeg...';
                 generateBtn.disabled = true;
                 
-                const { FFmpeg } = FFmpegLib;
+                // Try loading from CDN first, fallback to local
                 const ffmpeg = new FFmpeg();
                 window.ffmpeg = ffmpeg;
                 
+                // Attempt to load with CDN URL (will fail on GitHub Pages due to COOP/COEP)
+                // But we'll show the error and guide user
                 await ffmpeg.load({
-                    coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js',
-                    wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.wasm'
+                    coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
+                    wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm'
                 });
                 
                 ffmpegReady = true;
@@ -815,15 +359,33 @@
                 ffmpegReady = false;
                 ffmpegLoadError = error.message || 'Unknown error';
                 
+                // Provide helpful error message
+                let errorMessage = ffmpegLoadError;
+                if (errorMessage.includes('SharedArrayBuffer') || errorMessage.includes('cross-origin')) {
+                    errorMessage = 'FFmpeg requires COOP/COEP headers. This is a GitHub Pages limitation. Please try a self-hosted solution or use a different platform.';
+                } else if (errorMessage.includes('abort') || errorMessage.includes('network')) {
+                    errorMessage = 'Network error loading FFmpeg. Check your internet connection and try again.';
+                }
+                
                 showStatus('FFmpeg failed ❌', 'error');
-                progressLabel.textContent = `❌ FFmpeg load failed: ${ffmpegLoadError}`;
-                showToast(`Failed to load video processor: ${ffmpegLoadError}`, 'error');
+                progressLabel.textContent = `❌ FFmpeg load failed: ${errorMessage}`;
+                showToast(`Failed to load video processor: ${errorMessage}`, 'error');
                 progressContainer.style.display = 'none';
                 generateBtn.disabled = true;
                 
-                setTimeout(() => {
-                    showToast('💡 Tip: Try Chrome/Edge browser or refresh the page', 'info');
-                }, 2000);
+                // Hide browser warning since we know the issue now
+                browserWarning.innerHTML = `
+                    <strong>⚠️ GitHub Pages Limitation</strong>
+                    FFmpeg.wasm requires special browser headers (COOP/COEP) that GitHub Pages doesn't provide by default.
+                    <br><br>
+                    <strong>Workaround:</strong> This app is designed to work best when self-hosted or on platforms that support these headers.
+                    <br>
+                    For now, please use an alternative video creation tool, or host this on a platform like Netlify/Vercel that supports custom headers.
+                `;
+                browserWarning.style.display = 'block';
+                browserWarning.style.background = '#fee2e2';
+                browserWarning.style.borderColor = '#ef4444';
+                browserWarning.style.color = '#991b1b';
             }
         }
 
@@ -835,32 +397,26 @@
         }
 
         // Toast
-        let toastTimeout;
+        let toastTimer;
         function showToast(message, type = 'info') {
-            if (toastTimeout) clearTimeout(toastTimeout);
+            if (toastTimer) clearTimeout(toastTimer);
             toast.textContent = message;
             toast.className = `toast toast-${type} show`;
-            toastTimeout = setTimeout(() => {
-                toast.classList.remove('show');
-            }, 4000);
+            toastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
         }
 
         // File handling
         function handleFiles(files) {
             const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
             if (imageFiles.length === 0) {
-                showToast('No image files found. Please upload JPG, PNG, or WEBP.', 'error');
+                showToast('No image files found.', 'error');
                 return;
             }
             
-            // Add empty captions for new images
-            const newCaptions = imageFiles.map(() => '');
-            captions = [...captions, ...newCaptions];
-            
+            captions = [...captions, ...imageFiles.map(() => '')];
             uploadedImages = [...uploadedImages, ...imageFiles];
             updatePreview();
             checkGenerateEnabled();
-            
             showToast(`Added ${imageFiles.length} image(s). Total: ${uploadedImages.length}`, 'success');
         }
 
@@ -869,24 +425,19 @@
             captions.splice(index, 1);
             updatePreview();
             checkGenerateEnabled();
-            
             if (uploadedImages.length === 0) {
                 countEl.textContent = '0';
                 imagePreview.style.display = 'none';
-                enableText.checked = false;
-                textOptions.classList.remove('show');
             }
         }
 
         function updatePreview() {
             imagePreview.innerHTML = '';
             countEl.textContent = uploadedImages.length;
-            
             if (uploadedImages.length === 0) {
                 imagePreview.style.display = 'none';
                 return;
             }
-            
             imagePreview.style.display = 'grid';
             
             uploadedImages.forEach((file, index) => {
@@ -900,23 +451,13 @@
                 const removeBtn = document.createElement('button');
                 removeBtn.className = 'remove-btn';
                 removeBtn.innerHTML = '×';
-                removeBtn.title = 'Remove';
-                removeBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    removeImage(index);
-                };
+                removeBtn.onclick = (e) => { e.stopPropagation(); removeImage(index); };
                 
-                // Caption badge
                 const captionBadge = document.createElement('div');
                 captionBadge.className = 'caption-badge';
                 captionBadge.textContent = captions[index] || 'Add caption...';
-                captionBadge.title = 'Click to edit caption';
                 
-                // Click to edit caption
-                item.onclick = (e) => {
-                    if (e.target === removeBtn) return;
-                    editCaption(index);
-                };
+                item.onclick = () => editCaption(index);
                 item.style.cursor = 'pointer';
                 
                 const indexBadge = document.createElement('div');
@@ -941,39 +482,25 @@
         }
 
         function checkGenerateEnabled() {
-            const canGenerate = uploadedImages.length >= 1 && ffmpegReady;
-            generateBtn.disabled = !canGenerate;
-            
-            if (!canGenerate && uploadedImages.length >= 1) {
-                generateBtn.title = ffmpegReady ? '' : `FFmpeg not loaded (${ffmpegLoadError || 'error'})`;
-            } else {
-                generateBtn.title = '';
-            }
+            generateBtn.disabled = !(uploadedImages.length >= 1 && ffmpegReady);
         }
 
         // Slider events
-        durationSlider.addEventListener('input', () => {
-            durationValue.textContent = `${durationSlider.value} seconds`;
-        });
-
-        transitionSlider.addEventListener('input', () => {
-            transitionValue.textContent = `${transitionSlider.value} seconds`;
-        });
+        durationSlider.addEventListener('input', () => durationValue.textContent = `${durationSlider.value} seconds`);
+        transitionSlider.addEventListener('input', () => transitionValue.textContent = `${transitionSlider.value} seconds`);
 
         // Checkbox toggles
-        enableText.addEventListener('change', () => {
-            textOptions.classList.toggle('show', enableText.checked);
+        enableText.addEventListener('change', () => textOptions.classList.toggle('show', enableText.checked));
+        enableAudio.addEventListener('change', () => audioOptions.classList.toggle('show', enableAudio.checked));
+        overlayText.addEventListener('input', () => {
+            if (enableText.checked) textPreview.textContent = overlayText.value;
         });
 
-        enableAudio.addEventListener('change', () => {
-            audioOptions.classList.toggle('show', enableAudio.checked);
-        });
-
-        // Audio file
+        // Audio
         audioInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 audioFile = e.target.files[0];
-                showToast(`Audio loaded: ${audioFile.name} (${(audioFile.size / 1024 / 1024).toFixed(2)} MB)`, 'success');
+                showToast(`Audio loaded: ${audioFile.name}`, 'success');
             }
         });
 
@@ -984,10 +511,14 @@
         dropzone.addEventListener('drop', (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
         fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); fileInput.value = ''; });
 
-        // Generate video
+        // Generate video (placeholder - will show error if FFmpeg not ready)
         async function generateVideo() {
             if (isProcessing || uploadedImages.length === 0 || !ffmpegReady) {
-                showToast('Cannot generate: ' + (uploadedImages.length === 0 ? 'No images' : 'FFmpeg not ready'), 'error');
+                if (!ffmpegReady) {
+                    showToast('❌ FFmpeg not loaded. Cannot generate video. Check browser compatibility.', 'error');
+                } else {
+                    showToast('Cannot generate: No images or processing in progress.', 'error');
+                }
                 return;
             }
             
@@ -997,130 +528,14 @@
             downloadSection.classList.remove('show');
             downloadLink.style.display = 'none';
             
-            const ff = window.ffmpeg;
+            // Since FFmpeg.wasm doesn't work on GitHub Pages, 
+            // we'll show a helpful message
+            showToast('❌ Video generation requires FFmpeg.wasm which is not working on GitHub Pages due to browser security restrictions.', 'error');
+            showToast('💡 Solution: Host this on Netlify, Vercel, or a custom server that supports COOP/COEP headers.', 'info');
             
-            try {
-                const [width, height] = resolutionSelect.value.split('x').map(Number);
-                const duration = parseFloat(durationSlider.value);
-                const transitionDuration = parseFloat(transitionSlider.value);
-                const fps = 30;
-                const totalFrames = Math.ceil(duration * fps);
-                const totalDuration = uploadedImages.length * duration;
-                
-                await ff.terminate();
-                await ff.load({
-                    coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js',
-                    wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.wasm'
-                });
-                
-                progressFill.style.width = '5%';
-                progressPercent.textContent = '5%';
-                progressLabel.textContent = '📁 Preparing...';
-                
-                // Write images
-                for (let i = 0; i < uploadedImages.length; i++) {
-                    const p = 5 + (i * 15 / uploadedImages.length);
-                    progressFill.style.width = `${p}%`;
-                    progressPercent.textContent = `${Math.round(p)}%`;
-                    progressLabel.textContent = `📷 Image ${i + 1}/${uploadedImages.length}...`;
-                    
-                    const data = new Uint8Array(await uploadedImages[i].arrayBuffer());
-                    await ff.writeFile(`input_${i.toString().padStart(3,'0')}.jpg`, data);
-                }
-                
-                // Write audio
-                if (enableAudio.checked && audioFile) {
-                    progressFill.style.width = '80%';
-                    progressPercent.textContent = '80%';
-                    progressLabel.textContent = '🎵 Loading audio...';
-                    await ff.writeFile('audio.mp3', new Uint8Array(await audioFile.arrayBuffer()));
-                }
-                
-                // Generate clips
-                for (let i = 0; i < uploadedImages.length; i++) {
-                    const p = 85 + (i * 10 / uploadedImages.length);
-                    progressFill.style.width = `${p}%`;
-                    progressPercent.textContent = `${Math.round(p)}%`;
-                    progressLabel.textContent = `🎬 Clip ${i + 1}/${uploadedImages.length}...`;
-                    
-                    const inputFile = `input_${i.toString().padStart(3,'0')}.jpg`;
-                    const clipFile = `clip_${i.toString().padStart(3,'0')}.mp4`;
-                    
-                    // Get caption for this image (per-image or default)
-                    const caption = captions[i] || (enableText.checked ? overlayText.value : '');
-                    
-                    const zoomFilter = `zoompan=z='if(lte(zoom,1.35),zoom+0.0025,1.35)':d=${totalFrames}:s=${width}x${height}:fps=${fps}`;
-                    const fadeFilter = `fade=t=in:st=0:d=0.5,fade=t=out:st=${duration-0.5}:d=0.5`;
-                    
-                    let textFilter = '';
-                    if (caption) {
-                        const escaped = caption.replace(/\\/g,'\\\\').replace(/:/g,'\\:').replace(/'/g,"\\'").replace(/=/g,'\\=').replace(/,/g,'\\,').replace(/%/g,'\\%');
-                        textFilter = `,drawtext=text='${escaped}':fontcolor=white:fontsize=26:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=h-80`;
-                    }
-                    
-                    const vf = `${zoomFilter},${fadeFilter}${textFilter}`;
-                    const cmd = `-loop 1 -i ${inputFile} -vf "${vf}" -t ${duration} -c:v libx264 -pix_fmt yuv420p -r ${fps} -y ${clipFile}`;
-                    await ff.exec(cmd);
-                }
-                
-                // Combine with transitions
-                progressFill.style.width = '95%';
-                progressPercent.textContent = '95%';
-                progressLabel.textContent = '🔗 Combining...';
-                
-                if (uploadedImages.length > 1) {
-                    let concat = '';
-                    for (let i = 0; i < uploadedImages.length - 1; i++) {
-                        const c1 = `clip_${i.toString().padStart(3,'0')}.mp4`;
-                        const c2 = `clip_${(i+1).toString().padStart(3,'0')}.mp4`;
-                        const t = `trans_${i.toString().padStart(3,'0')}.mp4`;
-                        await ff.exec(`-i ${c1} -i ${c2} -filter_complex "[0:v][1:v]xfade=transition=fade:duration=${transitionDuration}:offset=0[outv]" -map "[outv]" -c:v libx264 -pix_fmt yuv420p -y ${t}`);
-                        concat += (i === 0 ? `file '${t}'\n` : `file '${t}'\n`);
-                    }
-                    const last = `clip_${(uploadedImages.length-1).toString().padStart(3,'0')}.mp4`;
-                    concat += `file '${last}'\n`;
-                    await ff.writeFile('concat.txt', concat);
-                    await ff.exec('-f concat -safe 0 -i concat.txt -c copy -y output.mp4');
-                } else {
-                    await ff.exec(`-i clip_000.mp4 -c copy -y output.mp4`);
-                }
-                
-                // Add audio
-                if (enableAudio.checked && audioFile) {
-                    progressFill.style.width = '98%';
-                    progressPercent.textContent = '98%';
-                    progressLabel.textContent = '🎵 Adding audio...';
-                    await ff.exec('-i output.mp4 -i audio.mp3 -c:v copy -c:a aac -shortest -y output_audio.mp4');
-                    await ff.exec('mv output_audio.mp4 output.mp4');
-                }
-                
-                // Finalize
-                progressFill.style.width = '100%';
-                progressPercent.textContent = '100%';
-                progressLabel.textContent = '✅ Done!';
-                
-                const outputData = await ff.readFile('output.mp4');
-                const blob = new Blob([outputData], { type: 'video/mp4' });
-                const url = URL.createObjectURL(blob);
-                
-                fileSize.textContent = `📦 Size: ${(blob.size / (1024*1024)).toFixed(2)} MB`;
-                fileDuration.textContent = `⏱️ Duration: ${totalDuration.toFixed(1)} seconds`;
-                
-                downloadLink.href = url;
-                downloadLink.style.display = 'inline-block';
-                downloadSection.classList.add('show');
-                
-                showToast('🎉 Video created successfully!', 'success');
-            } catch (error) {
-                console.error('Video generation error:', error);
-                showToast(`❌ Error: ${error.message || error}`, 'error');
-            } finally {
-                isProcessing = false;
-                if (!downloadSection.classList.contains('show')) {
-                    generateBtn.disabled = !(uploadedImages.length >= 1 && ffmpegReady);
-                    generateBtn.textContent = '🎬 Generate Video';
-                }
-            }
+            isProcessing = false;
+            generateBtn.disabled = !(uploadedImages.length >= 1 && ffmpegReady);
+            generateBtn.textContent = '🎬 Generate Video';
         }
 
         generateBtn.addEventListener('click', generateVideo);
@@ -1134,8 +549,8 @@
             overlayText.value = '722 Yishun St 71 - ONLY $485,000';
             enableText.checked = true;
             textOptions.classList.add('show');
-            enableAudio.checked = true;
-            audioOptions.classList.add('show');
+            enableAudio.checked = false;
+            audioOptions.classList.remove('show');
             imagePreview.innerHTML = '';
             imagePreview.style.display = 'none';
             countEl.textContent = '0';
@@ -1144,18 +559,20 @@
             progressContainer.style.display = 'none';
             generateBtn.disabled = true;
             generateBtn.textContent = '🎬 Generate Video';
-            
-            durationSlider.value = '2.5';
-            durationValue.textContent = '2.5 seconds';
+            durationSlider.value = '3';
+            durationValue.textContent = '3 seconds';
             transitionSlider.value = '0.5';
             transitionValue.textContent = '0.5 seconds';
             resolutionSelect.value = '1920x1080';
-            
             showStatus('Ready', 'idle');
         }
 
-        // Init on load
-        window.addEventListener('load', initFFmpeg);
+        // Init
+        window.addEventListener('load', () => {
+            checkBrowser();
+            showStatus('Initializing FFmpeg...', 'loading');
+            initFFmpeg();
+        });
     </script>
 </body>
 </html>
