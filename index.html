@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real Estate Video Maker - Free Property Tour Creator</title>
-    <!-- Force cache busting with version parameter -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+    <title>Real Estate Video Maker</title>
+    <meta http-equiv="Cache-Control" content="no-cache">
     <style>
+        /* [CSS - same as before] */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.6; }
         .container { max-width: 900px; margin: 0 auto; padding: 2rem; }
@@ -94,11 +92,11 @@
     <div class="container">
         <header>
             <h1>🏠 Real Estate Video Maker</h1>
-            <p class="subtitle">Create professional property tour videos from your photos — free, runs in your browser, nothing uploaded</p>
+            <p class="subtitle">Create professional property tour videos from your photos — free, runs in your browser</p>
         </header>
 
         <div class="ffmpeg-status">
-            <span class="status-badge status-idle" id="statusBadge">Loading...</span>
+            <span class="status-badge status-idle" id="statusBadge">Loading FFmpeg...</span>
         </div>
 
         <div class="upload-section">
@@ -109,16 +107,13 @@
                 <p>Supports: JPG, PNG, WEBP (max 50 images)</p>
                 <input type="file" id="fileInput" multiple accept="image/*" hidden>
             </div>
-            <div class="image-count">
-                <span id="count">0</span> images loaded
-            </div>
+            <div class="image-count"><span id="count">0</span> images loaded</div>
         </div>
 
         <div class="image-preview" id="imagePreview"></div>
 
         <div class="settings-section">
             <h2>🎬 Video Settings</h2>
-            
             <div class="option-group">
                 <label>Duration per image (seconds)</label>
                 <div class="slider-container">
@@ -126,7 +121,6 @@
                     <span id="durationValue">3 seconds</span>
                 </div>
             </div>
-
             <div class="option-group">
                 <label>Transition duration (seconds)</label>
                 <div class="slider-container">
@@ -134,7 +128,6 @@
                     <span id="transitionValue">0.5 seconds</span>
                 </div>
             </div>
-
             <div class="option-group">
                 <label>Output resolution</label>
                 <select id="resolution">
@@ -148,7 +141,6 @@
 
         <div class="settings-section">
             <h2>✏️ Captions & Audio</h2>
-            
             <div class="option-group">
                 <label class="checkbox-label">
                     <input type="checkbox" id="enableText" checked>
@@ -156,12 +148,9 @@
                 </label>
                 <div class="text-options show" id="textOptions">
                     <input type="text" id="overlayText" value="722 Yishun St 71 - ONLY $485,000" placeholder="e.g., Property address + price" maxlength="150">
-                    <div class="text-preview">
-                        <span>💡 Tip:</span> Click on any image preview below to set a <strong>different caption</strong> for that specific photo.
-                    </div>
+                    <div class="text-preview"><span>💡 Tip:</span> Click on any image preview below to set a <strong>different caption</strong> for that specific photo.</div>
                 </div>
             </div>
-
             <div class="option-group">
                 <label class="checkbox-label">
                     <input type="checkbox" id="enableAudio">
@@ -175,27 +164,16 @@
         </div>
 
         <div class="actions-section">
-            <button id="generateBtn" class="btn-primary" disabled>
-                🎬 Generate Video
-            </button>
-            
+            <button id="generateBtn" class="btn-primary" disabled>🎬 Generate Video</button>
             <div class="progress-container" id="progressContainer" style="display: none;">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                <div class="progress-text">
-                    <span id="progressLabel">Processing...</span>
-                    <span id="progressPercent">0%</span>
-                </div>
+                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                <div class="progress-text"><span id="progressLabel">Processing...</span><span id="progressPercent">0%</span></div>
             </div>
         </div>
 
         <div class="download-section" id="downloadSection">
             <h2>✅ Video Ready!</h2>
-            <p class="download-info">
-                <span id="fileSize"></span> · 
-                <span id="fileDuration"></span>
-            </p>
+            <p class="download-info"><span id="fileSize"></span> · <span id="fileDuration"></span></p>
             <a id="downloadLink" href="#" download="property_tour.mp4" class="btn-secondary" style="display: none;">⬇️ Download Video</a>
             <button id="resetBtn" class="btn-ghost">🔄 Create Another Video</button>
         </div>
@@ -203,48 +181,12 @@
         <div class="features">
             <h3>✨ Features</h3>
             <div class="feature-grid">
-                <div class="feature">
-                    <span class="feature-icon">🎥</span>
-                    <div>
-                        <h4>Ken Burns Effect</h4>
-                        <p>Smooth zoom and pan animations</p>
-                    </div>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">🔄</span>
-                    <div>
-                        <h4>Crossfade Transitions</h4>
-                        <p>Professional fade transitions</p>
-                    </div>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">📝</span>
-                    <div>
-                        <h4>Per-Image Captions</h4>
-                        <p>Click images to set custom text</p>
-                    </div>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">📱</span>
-                    <div>
-                        <h4>Social Media Formats</h4>
-                        <p>Square (1:1) and Vertical (9:16)</p>
-                    </div>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">🔒</span>
-                    <div>
-                        <h4>100% Private</h4>
-                        <p>All processing in your browser</p>
-                    </div>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">🎵</span>
-                    <div>
-                        <h4>Background Audio</h4>
-                        <p>Add music or narration</p>
-                    </div>
-                </div>
+                <div class="feature"><span class="feature-icon">🎥</span><div><h4>Ken Burns Effect</h4><p>Smooth zoom and pan animations</p></div></div>
+                <div class="feature"><span class="feature-icon">🔄</span><div><h4>Crossfade Transitions</h4><p>Professional fade transitions</p></div></div>
+                <div class="feature"><span class="feature-icon">📝</span><div><h4>Per-Image Captions</h4><p>Click images to set custom text</p></div></div>
+                <div class="feature"><span class="feature-icon">📱</span><div><h4>Social Media Formats</h4><p>Square (1:1) and Vertical (9:16)</p></div></div>
+                <div class="feature"><span class="feature-icon">🔒</span><div><h4>100% Private</h4><p>All processing in your browser</p></div></div>
+                <div class="feature"><span class="feature-icon">🎵</span><div><h4>Background Audio</h4><p>Add music or narration</p></div></div>
             </div>
         </div>
 
@@ -256,9 +198,8 @@
 
     <div class="toast" id="toast"></div>
 
-    <!-- Load FFmpeg library from CDN -->
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
-    <!-- Load our application logic (loads FFmpeg core from local files with COOP/COEP headers) -->
-    <script src="script.js"></script>
+    <!-- Load FFmpeg from LOCAL file (avoids CDN blocking by Edge) -->
+    <script src="./js/ffmpeg.min.js"></script>
+    <script src="./script.js"></script>
 </body>
 </html>
