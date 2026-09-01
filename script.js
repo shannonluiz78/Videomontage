@@ -1,282 +1,287 @@
 /**
- * Real Estate Video Maker - Client-side video generation using FFmpeg.wasm
- * All processing happens in the browser - no server uploads
+ * Real Estate Video Maker
+ * FFmpeg.wasm-based video generation in browser
  * 
- * FFmpeg library loaded from CDN: https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js
- * Core files served locally from /js/ directory
+ * Load order: FFmpeg library (UMD) → This script
  */
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // Check if FFmpeg library loaded
-    if (typeof FFmpeg === 'undefined' && typeof self !== 'undefined' && typeof self.FFmpeg !== 'undefined') {
-        window.FFmpeg = self.FFmpeg;
+(function() {
+    'use strict';
+    
+    // Wait for DOM
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
     }
     
-    if (typeof FFmpeg === 'undefined') {
-        console.error('FFmpeg library not loaded');
-        showStatus('FFmpeg library not loaded ❌', 'error');
-        return;
-    }
-
-    console.log('FFmpeg library loaded:', typeof FFmpeg, FFmpeg);
-    
-    // Initialize state
-    let uploadedImages = [];
-    let audioFile = null;
-    let isProcessing = false;
-    let ffmpegReady = false;
-    let ffmpegLoadError = null;
-    let captions = [];
-
-    // DOM Elements
-    const dropzone = document.getElementById('dropzone');
-    const fileInput = document.getElementById('fileInput');
-    const countEl = document.getElementById('count');
-    const imagePreview = document.getElementById('imagePreview');
-    const durationSlider = document.getElementById('duration');
-    const durationValue = document.getElementById('durationValue');
-    const transitionSlider = document.getElementById('transition');
-    const transitionValue = document.getElementById('transitionValue');
-    const resolutionSelect = document.getElementById('resolution');
-    const enableText = document.getElementById('enableText');
-    const textOptions = document.getElementById('textOptions');
-    const overlayText = document.getElementById('overlayText');
-    const textPreview = document.getElementById('textPreview');
-    const enableAudio = document.getElementById('enableAudio');
-    const audioOptions = document.getElementById('audioOptions');
-    const audioInput = document.getElementById('audioInput');
-    const generateBtn = document.getElementById('generateBtn');
-    const progressContainer = document.getElementById('progressContainer');
-    const progressFill = document.getElementById('progressFill');
-    const progressLabel = document.getElementById('progressLabel');
-    const progressPercent = document.getElementById('progressPercent');
-    const downloadSection = document.getElementById('downloadSection');
-    const fileSize = document.getElementById('fileSize');
-    const fileDuration = document.getElementById('fileDuration');
-    const statusBadge = document.getElementById('statusBadge');
-    const toast = document.getElementById('toast');
-
-    // Status badge
-    function showStatus(message, type) {
-        if (!statusBadge) return;
-        statusBadge.textContent = message;
-        statusBadge.className = `status-badge status-${type}`;
-    }
-
-    // Toast
-    let toastTimer;
-    function showToast(message, type = 'info') {
-        if (toastTimer) clearTimeout(toastTimer);
-        if (!toast) return;
-        toast.textContent = message;
-        toast.className = `toast toast-${type} show`;
-        toastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
-    }
-
-    // File handling
-    function handleFiles(files) {
-        const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
-        if (imageFiles.length === 0) {
-            showToast('No image files found.', 'error');
+    function init() {
+        console.log('[RealEstateVideoMaker] Initializing...');
+        
+        // Check FFmpeg library
+        const FFmpegLib = window.FFmpeg;
+        console.log('[RealEstateVideoMaker] FFmpeg library:', FFmpegLib);
+        
+        if (!FFmpegLib) {
+            console.error('[RealEstateVideoMaker] FFmpeg library not found on window!');
+            showError('FFmpeg library failed to load. Check browser console (F12).');
             return;
         }
         
-        captions = [...captions, ...imageFiles.map(() => '')];
-        uploadedImages = [...uploadedImages, ...imageFiles];
-        updatePreview();
-        checkGenerateEnabled();
-        showToast(`Added ${imageFiles.length} image(s). Total: ${uploadedImages.length}`, 'success');
-    }
-
-    function removeImage(index) {
-        if (index < 0 || index >= uploadedImages.length) return;
-        uploadedImages.splice(index, 1);
-        captions.splice(index, 1);
-        updatePreview();
-        checkGenerateEnabled();
-        if (uploadedImages.length === 0) {
-            countEl.textContent = '0';
-            if (imagePreview) imagePreview.style.display = 'none';
-        }
-    }
-
-    function updatePreview() {
-        if (!imagePreview) return;
-        imagePreview.innerHTML = '';
-        countEl.textContent = uploadedImages.length;
-        if (uploadedImages.length === 0) {
-            imagePreview.style.display = 'none';
+        if (typeof FFmpegLib !== 'function') {
+            console.error('[RealEstateVideoMaker] FFmpeg is not a function:', typeof FFmpegLib);
+            showError('FFmpeg library loaded but not in expected format. Check browser console (F12).');
             return;
         }
-        imagePreview.style.display = 'grid';
         
-        uploadedImages.forEach((file, index) => {
-            const item = document.createElement('div');
-            item.className = 'preview-item';
-            
-            const img = document.createElement('img');
-            img.src = URL.createObjectURL(file);
-            img.alt = `Image ${index + 1}`;
-            
-            const removeBtn = document.createElement('button');
-            removeBtn.className = 'remove-btn';
-            removeBtn.innerHTML = '×';
-            removeBtn.onclick = (e) => { e.stopPropagation(); removeImage(index); };
-            
-            const captionBadge = document.createElement('div');
-            captionBadge.className = 'caption-badge';
-            captionBadge.textContent = captions[index] || 'Add caption...';
-            
-            item.onclick = () => editCaption(index);
-            item.style.cursor = 'pointer';
-            
-            const indexBadge = document.createElement('div');
-            indexBadge.style.cssText = 'position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:white;font-size:10px;padding:2px 6px;border-radius:4px;';
-            indexBadge.textContent = index + 1;
-            
-            item.appendChild(img);
-            item.appendChild(removeBtn);
-            item.appendChild(captionBadge);
-            item.appendChild(indexBadge);
-            imagePreview.appendChild(item);
-        });
-    }
-
-    function editCaption(index) {
-        const current = captions[index] || '';
-        const newCaption = prompt(`Caption for image ${index + 1}:`, current);
-        if (newCaption !== null) {
-            captions[index] = newCaption.trim();
+        console.log('[RealEstateVideoMaker] FFmpeg library OK, creating instance...');
+        
+        // Create FFmpeg instance
+        const ffmpeg = new FFmpegLib();
+        window.ffmpeg = ffmpeg;
+        console.log('[RealEstateVideoMaker] FFmpeg instance created:', ffmpeg);
+        
+        // State
+        let uploadedImages = [];
+        let audioFile = null;
+        let isProcessing = false;
+        let ffmpegReady = false;
+        let captions = [];
+        
+        // DOM refs
+        const els = {
+            dropzone: document.getElementById('dropzone'),
+            fileInput: document.getElementById('fileInput'),
+            countEl: document.getElementById('count'),
+            imagePreview: document.getElementById('imagePreview'),
+            durationSlider: document.getElementById('duration'),
+            durationValue: document.getElementById('durationValue'),
+            transitionSlider: document.getElementById('transition'),
+            transitionValue: document.getElementById('transitionValue'),
+            resolutionSelect: document.getElementById('resolution'),
+            enableText: document.getElementById('enableText'),
+            textOptions: document.getElementById('textOptions'),
+            overlayText: document.getElementById('overlayText'),
+            textPreview: document.getElementById('textPreview'),
+            enableAudio: document.getElementById('enableAudio'),
+            audioOptions: document.getElementById('audioOptions'),
+            audioInput: document.getElementById('audioInput'),
+            generateBtn: document.getElementById('generateBtn'),
+            progressContainer: document.getElementById('progressContainer'),
+            progressFill: document.getElementById('progressFill'),
+            progressLabel: document.getElementById('progressLabel'),
+            progressPercent: document.getElementById('progressPercent'),
+            downloadSection: document.getElementById('downloadSection'),
+            fileSize: document.getElementById('fileSize'),
+            fileDuration: document.getElementById('fileDuration'),
+            statusBadge: document.getElementById('statusBadge'),
+            toast: document.getElementById('toast'),
+            resetBtn: document.getElementById('resetBtn')
+        };
+        
+        // UI helpers
+        function setStatus(msg, type) {
+            if (!els.statusBadge) return;
+            els.statusBadge.textContent = msg;
+            els.statusBadge.className = `status-badge status-${type}`;
+        }
+        
+        let toastTimer;
+        function showToast(msg, type = 'info') {
+            if (!els.toast) return;
+            if (toastTimer) clearTimeout(toastTimer);
+            els.toast.textContent = msg;
+            els.toast.className = `toast toast-${type} show`;
+            toastTimer = setTimeout(() => els.toast.classList.remove('show'), 4000);
+        }
+        
+        function showError(msg) {
+            setStatus('FFmpeg failed ❌', 'error');
+            showToast(msg, 'error');
+            if (els.progressContainer) els.progressContainer.style.display = 'none';
+            if (els.generateBtn) els.generateBtn.disabled = true;
+        }
+        
+        // FFmpeg load
+        async function loadFFmpeg() {
+            try {
+                setStatus('Loading FFmpeg core (~30MB)...', 'loading');
+                if (els.progressContainer) els.progressContainer.style.display = 'block';
+                if (els.progressFill) els.progressFill.style.width = '30%';
+                if (els.progressPercent) els.progressPercent.textContent = '30%';
+                if (els.progressLabel) els.progressLabel.textContent = '📥 Downloading...';
+                if (els.generateBtn) els.generateBtn.disabled = true;
+                
+                console.log('[RealEstateVideoMaker] Loading FFmpeg core from ./js/ffmpeg-core.js');
+                await ffmpeg.load({
+                    coreURL: './js/ffmpeg-core.js',
+                    wasmURL: './js/ffmpeg-core.wasm'
+                });
+                
+                ffmpegReady = true;
+                console.log('[RealEstateVideoMaker] FFmpeg loaded successfully');
+                setStatus('FFmpeg ready ✓', 'success');
+                if (els.progressFill) els.progressFill.style.width = '100%';
+                if (els.progressPercent) els.progressPercent.textContent = '100%';
+                if (els.progressLabel) els.progressLabel.textContent = '✅ FFmpeg loaded!';
+                
+                setTimeout(() => {
+                    if (els.progressContainer) els.progressContainer.style.display = 'none';
+                    setStatus('Ready to create videos', 'idle');
+                }, 1500);
+                
+                checkGenerateEnabled();
+            } catch (err) {
+                console.error('[RealEstateVideoMaker] FFmpeg load error:', err);
+                ffmpegReady = false;
+                showError(`Failed to load video processor: ${err.message || err}`);
+            }
+        }
+        
+        // Check if generate enabled
+        function checkGenerateEnabled() {
+            if (!els.generateBtn) return;
+            els.generateBtn.disabled = !(uploadedImages.length >= 1 && ffmpegReady);
+        }
+        
+        // File handling
+        function handleFiles(files) {
+            const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+            if (imageFiles.length === 0) {
+                showToast('No image files found.', 'error');
+                return;
+            }
+            captions = [...captions, ...imageFiles.map(() => '')];
+            uploadedImages = [...uploadedImages, ...imageFiles];
             updatePreview();
-        }
-    }
-
-    function checkGenerateEnabled() {
-        if (!generateBtn) return;
-        generateBtn.disabled = !(uploadedImages.length >= 1 && ffmpegReady);
-    }
-
-    // Slider events
-    if (durationSlider) durationSlider.addEventListener('input', () => durationValue.textContent = `${durationSlider.value} seconds`);
-    if (transitionSlider) transitionSlider.addEventListener('input', () => transitionValue.textContent = `${transitionSlider.value} seconds`);
-
-    // Checkbox toggles
-    if (enableText) enableText.addEventListener('change', () => textOptions.classList.toggle('show', enableText.checked));
-    if (enableAudio) enableAudio.addEventListener('change', () => audioOptions.classList.toggle('show', enableAudio.checked));
-    if (overlayText) overlayText.addEventListener('input', () => {
-        if (enableText && enableText.checked) textPreview.textContent = overlayText.value;
-    });
-
-    // Audio
-    if (audioInput) audioInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            audioFile = e.target.files[0];
-            showToast(`Audio loaded: ${audioFile.name}`, 'success');
-        }
-    });
-
-    // Dropzone
-    if (dropzone) {
-        dropzone.addEventListener('click', () => fileInput?.click());
-        dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
-        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-        dropzone.addEventListener('drop', (e) => { 
-            e.preventDefault(); 
-            dropzone.classList.remove('dragover'); 
-            handleFiles(e.dataTransfer.files); 
-        });
-    }
-    if (fileInput) fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); fileInput.value = ''; });
-
-    // Generate video function (placeholder)
-    async function generateVideo() {
-        if (!ffmpegReady) {
-            showToast('❌ FFmpeg not loaded yet. Please wait...', 'error');
-            return;
-        }
-        if (uploadedImages.length === 0) {
-            showToast('❌ No images uploaded', 'error');
-            return;
+            checkGenerateEnabled();
+            showToast(`Added ${imageFiles.length} image(s). Total: ${uploadedImages.length}`, 'success');
         }
         
-        showToast('⏳ Generating video... This may take a while', 'info');
-        // Actual video generation would go here
-    }
-
-    if (generateBtn) generateBtn.addEventListener('click', generateVideo);
-    if (document.getElementById('resetBtn')) document.getElementById('resetBtn').addEventListener('click', () => {
-        uploadedImages = [];
-        captions = [];
-        if (audioInput) audioInput.value = '';
-        if (overlayText) overlayText.value = '722 Yishun St 71 - ONLY $485,000';
-        if (enableText) enableText.checked = true;
-        if (textOptions) textOptions.classList.add('show');
-        if (enableAudio) enableAudio.checked = false;
-        if (audioOptions) audioOptions.classList.remove('show');
-        if (imagePreview) { imagePreview.innerHTML = ''; imagePreview.style.display = 'none'; }
-        if (countEl) countEl.textContent = '0';
-        if (downloadSection) downloadSection.classList.remove('show');
-        if (generateBtn) { generateBtn.disabled = true; generateBtn.textContent = '🎬 Generate Video'; }
-        if (durationSlider) durationSlider.value = '3';
-        if (durationValue) durationValue.textContent = '3 seconds';
-        if (transitionSlider) transitionSlider.value = '0.5';
-        if (transitionValue) transitionValue.textContent = '0.5 seconds';
-        if (resolutionSelect) resolutionSelect.value = '1920x1080';
-        showStatus('Ready', 'idle');
-    });
-
-    // Initialize FFmpeg
-    async function initFFmpeg() {
-        try {
-            showStatus('Loading FFmpeg core (~30MB)...', 'loading');
-            if (progressContainer) progressContainer.style.display = 'block';
-            if (progressFill) progressFill.style.width = '30%';
-            if (progressPercent) progressPercent.textContent = '30%';
-            if (progressLabel) progressLabel.textContent = '📥 Downloading FFmpeg...';
-            if (generateBtn) generateBtn.disabled = true;
-            
-            console.log('Creating FFmpeg instance...');
-            console.log('FFmpeg type:', typeof FFmpeg);
-            console.log('FFmpeg prototype:', FFmpeg?.prototype);
-            
-            // Try to create instance
-            const ff = new FFmpeg();
-            window.ffmpeg = ff;
-            
-            console.log('FFmpeg instance created:', ff);
-            
-            // Load from local files
-            await ff.load({
-                coreURL: './js/ffmpeg-core.js',
-                wasmURL: './js/ffmpeg-core.wasm'
-            });
-            
-            ffmpegReady = true;
-            ffmpegLoadError = null;
-            showStatus('FFmpeg ready ✓', 'success');
-            if (progressFill) progressFill.style.width = '100%';
-            if (progressPercent) progressPercent.textContent = '100%';
-            if (progressLabel) progressLabel.textContent = '✅ FFmpeg loaded!';
-            
-            setTimeout(() => {
-                if (progressContainer) progressContainer.style.display = 'none';
-                showStatus('Ready to create videos', 'idle');
-            }, 1500);
-            
+        function removeImage(index) {
+            if (index < 0 || index >= uploadedImages.length) return;
+            uploadedImages.splice(index, 1);
+            captions.splice(index, 1);
+            updatePreview();
             checkGenerateEnabled();
-        } catch (error) {
-            console.error('FFmpeg load error:', error);
-            ffmpegReady = false;
-            ffmpegLoadError = error.message || 'Unknown error';
-            
-            showStatus('FFmpeg failed ❌', 'error');
-            showToast(`Failed to load video processor: ${ffmpegLoadError}`, 'error');
-            if (progressContainer) progressContainer.style.display = 'none';
-            if (generateBtn) generateBtn.disabled = true;
+            if (uploadedImages.length === 0) {
+                els.countEl.textContent = '0';
+                if (els.imagePreview) els.imagePreview.style.display = 'none';
+            }
         }
+        
+        function updatePreview() {
+            if (!els.imagePreview) return;
+            els.imagePreview.innerHTML = '';
+            els.countEl.textContent = uploadedImages.length;
+            if (uploadedImages.length === 0) {
+                els.imagePreview.style.display = 'none';
+                return;
+            }
+            els.imagePreview.style.display = 'grid';
+            
+            uploadedImages.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'preview-item';
+                item.innerHTML = `
+                    <img src="${URL.createObjectURL(file)}" alt="Image ${index + 1}" style="width:100%;height:100%;object-fit:cover;">
+                    <button class="remove-btn" title="Remove">×</button>
+                    <div class="caption-badge">${captions[index] || 'Add caption...'}</div>
+                    <div style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;">${index + 1}</div>
+                `;
+                item.querySelector('.remove-btn').onclick = (e) => { e.stopPropagation(); removeImage(index); };
+                item.onclick = () => editCaption(index);
+                item.style.cursor = 'pointer';
+                els.imagePreview.appendChild(item);
+            });
+        }
+        
+        function editCaption(index) {
+            const current = captions[index] || '';
+            const newCaption = prompt(`Caption for image ${index + 1}:`, current);
+            if (newCaption !== null) {
+                captions[index] = newCaption.trim();
+                updatePreview();
+            }
+        }
+        
+        // Event listeners
+        if (els.durationSlider) els.durationSlider.addEventListener('input', () => {
+            if (els.durationValue) els.durationValue.textContent = `${els.durationSlider.value} seconds`;
+        });
+        if (els.transitionSlider) els.transitionSlider.addEventListener('input', () => {
+            if (els.transitionValue) els.transitionValue.textContent = `${els.transitionSlider.value} seconds`;
+        });
+        if (els.enableText) els.enableText.addEventListener('change', () => {
+            if (els.textOptions) els.textOptions.classList.toggle('show', els.enableText.checked);
+        });
+        if (els.enableAudio) els.enableAudio.addEventListener('change', () => {
+            if (els.audioOptions) els.audioOptions.classList.toggle('show', els.enableAudio.checked);
+        });
+        if (els.overlayText) els.overlayText.addEventListener('input', () => {
+            if (els.enableText && els.enableText.checked && els.textPreview) {
+                els.textPreview.textContent = els.overlayText.value;
+            }
+        });
+        if (els.audioInput) els.audioInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                audioFile = e.target.files[0];
+                showToast(`Audio loaded: ${audioFile.name}`, 'success');
+            }
+        });
+        if (els.dropzone) {
+            els.dropzone.addEventListener('click', () => els.fileInput?.click());
+            els.dropzone.addEventListener('dragover', (e) => { e.preventDefault(); els.dropzone.classList.add('dragover'); });
+            els.dropzone.addEventListener('dragleave', () => els.dropzone.classList.remove('dragover'));
+            els.dropzone.addEventListener('drop', (e) => { 
+                e.preventDefault(); 
+                els.dropzone.classList.remove('dragover'); 
+                handleFiles(e.dataTransfer.files); 
+            });
+        }
+        if (els.fileInput) els.fileInput.addEventListener('change', (e) => { 
+            handleFiles(e.target.files); 
+            els.fileInput.value = ''; 
+        });
+        
+        if (els.generateBtn) els.generateBtn.addEventListener('click', () => {
+            if (!ffmpegReady) {
+                showToast('❌ FFmpeg not loaded yet. Please wait...', 'error');
+                return;
+            }
+            if (uploadedImages.length === 0) {
+                showToast('❌ No images uploaded', 'error');
+                return;
+            }
+            showToast('⏳ Generating video... This may take a while', 'info');
+            // Video generation would go here
+        });
+        
+        if (els.resetBtn) els.resetBtn.addEventListener('click', () => {
+            uploadedImages = [];
+            captions = [];
+            audioFile = null;
+            if (els.audioInput) els.audioInput.value = '';
+            if (els.overlayText) els.overlayText.value = '722 Yishun St 71 - ONLY $485,000';
+            if (els.enableText) els.enableText.checked = true;
+            if (els.textOptions) els.textOptions.classList.add('show');
+            if (els.enableAudio) els.enableAudio.checked = false;
+            if (els.audioOptions) els.audioOptions.classList.remove('show');
+            if (els.imagePreview) { els.imagePreview.innerHTML = ''; els.imagePreview.style.display = 'none'; }
+            if (els.countEl) els.countEl.textContent = '0';
+            if (els.downloadSection) els.downloadSection.classList.remove('show');
+            if (els.generateBtn) { els.generateBtn.disabled = true; els.generateBtn.textContent = '🎬 Generate Video'; }
+            if (els.durationSlider) els.durationSlider.value = '3';
+            if (els.durationValue) els.durationValue.textContent = '3 seconds';
+            if (els.transitionSlider) els.transitionSlider.value = '0.5';
+            if (els.transitionValue) els.transitionValue.textContent = '0.5 seconds';
+            if (els.resolutionSelect) els.resolutionSelect.value = '1920x1080';
+            setStatus('Ready', 'idle');
+        });
+        
+        // Start
+        console.log('[RealEstateVideoMaker] Starting FFmpeg load...');
+        setStatus('Initializing FFmpeg...', 'loading');
+        loadFFmpeg();
     }
-
-    // Start
-    showStatus('Initializing FFmpeg...', 'loading');
-    await initFFmpeg();
-});
+})();
